@@ -8,10 +8,17 @@ ensemble cluster. It then runs the caustic technique on the ensemble cluster's p
 the most basic level, this code needs only RA and Dec of galaxies on the sky, or their X, Y, Z position
 in a cube. 
 
-## Authors: ##
+**version** : 0.1
+
+### Authors: ###
 
 **Nicholas Kern**, University of Michigan
 
 **Daniel Gifford**, University of Michigan
 
 **Christopher Miller**, University of Michigan
+
+### License: ###
+Copyright 2014, the Authors
+
+
