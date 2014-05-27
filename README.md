@@ -1,8 +1,6 @@
 `caustic_stack`
 ==============
 :Author: `Nicholas Kern`_
-:Email: svobodb@email.arizona.edu
-:Source: https://github.com/autocorr/besl
 
 
 REQUIREMENTS
