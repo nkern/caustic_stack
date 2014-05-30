@@ -25,12 +25,6 @@ import cosmolopy.distance as cd
 import DictEZ as ez
 from causticpy import Caustic,CausticSurface,MassCalc
 
-# Load parameter file
-sys.path.insert(0,os.getcwd())
-__import__('caustic_params')
-from caustic_params import *
-print "Loaded caustic_params from",sys.modules['caustic_params']
-
 
 class Data():
 	"""
@@ -86,7 +80,7 @@ class Stack(object):
 
 
 
-	def caustic_stack(self,ens_data,HaloID,HaloData,BinData,stack_num,ind_data=[None]*5,ens_shiftgap=True,ens_reduce=True):
+	def caustic_stack(self,ens_data,HaloID,HaloData,BinData,stack_num,ind_data=[None]*5,ens_shiftgap=True,ens_reduce=True,run_los=False):
 		"""
 		-- Takes an array of individual phase spaces and stacks them, then runs 
 		   a caustic technique over the ensemble and/or individual phase spaces.
@@ -134,7 +128,7 @@ class Stack(object):
 
 			# Calculate individual HVD
 			ind_hvd = []
-			if self.run_los == True:
+			if run_los == True:
 				# Pick out gals within r200
 				within = np.where(ind_r<R200[l])[0]
 				gal_count = len(within)
@@ -154,7 +148,7 @@ class Stack(object):
 
 			# If run_los == True, run Caustic Technique on individual cluster
 			ind_caumass,ind_caumass_est,ind_edgemass,ind_edgemass_est,ind_causurf,ind_nfwsurf = [],[],[],[],[],[]
-			if self.run_los == True:
+			if run_los == True:
 				self.run_caustic(ind_r,ind_v,R200,HVD)
 				ind_caumass = self.C.M200_fbeta
 				ind_caumass_est = self.C.Mass2.M200_est
