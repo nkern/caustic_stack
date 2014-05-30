@@ -413,9 +413,118 @@ class Universal(object):
 		return en_r,en_v,en_gal_id,en_clus_id,en_gmags,en_rmags,en_imags,ln_r,ln_v,ln_gal_id,ln_gmags,ln_rmags,ln_imags,samp_size
 
 
+	def rand_pos(self,distance):
+	        '''Picks a random position for the observer a given distance away from the center'''
+		theta = npr.normal(np.pi/2,np.pi/4)
+		phi = npr.uniform(0,2*np.pi)
+		x = np.sin(theta)*np.cos(phi)
+		y = np.sin(theta)*np.sin(phi)
+		z = np.cos(theta)
+	
+		unit = np.array([x,y,z])/(x**2+y**2+z**2)**(.5)
+		# move the position a random 'distance' Mpc away
+	        return distance*unit
 
+
+	def limit_gals(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,r200,hvd):
+		''' Sort data by magnitude, and elimite values outside phase space limits '''
+		# Sort by ascending r magnitude (bright to dim)
+		sorts = np.argsort(rmags)
+		r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags = r[sorts],v[sorts],en_gal_id[sorts],en_clus_id[sorts],ln_gal_id[sorts],gmags[sorts],rmags[sorts],imags[sorts]
+
+		# Limit Phase Space
+		sample = np.where( (r < r200*self.r_limit) & (v > -self.v_limit) & (v < self.v_limit) )[0] 
+		r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags = r[sample],v[sample],en_gal_id[sample],en_clus_id[sample],ln_gal_id[sample],gmags[sample],rmags[sample],imags[sample]
+		samp_size = len(sample)
+
+
+		# Eliminate galaxies w/ mag = 99.
+		cut = np.where((gmags!=99)&(rmags!=99)&(imags!=99))[0]
+		r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags = r[cut],v[cut],en_gal_id[cut],en_clus_id[cut],ln_gal_id[cut],gmags[cut],rmags[cut],imags[cut]
+		samp_size = len(cut)
+	
+		return r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,samp_size
+
+
+	def Bin_Calc(self,HaloData,varib,avg_meth='mean'):
+		'''
+		This function does pre-technique binning analysis
+		'''
+		# Unpack Arrays
+		M_crit200,R_crit200,Z,SRAD,ESRAD,HVD = HaloData
+
+		# Choose Averaging Method
+		if avg_meth == 'median':
+			avg_method = np.median
+		elif avg_meth == 'mean':
+			avg_method = np.mean
+		else:
+			avg_method = np.mean
+
+		# Calculate Bin R200 and Bin HVD, use median
+		BIN_M200,BIN_R200,BIN_HVD = [],[],[]
+		for i in range(varib['halo_num']/varib['line_num']):
+			BIN_M200.append( avg_method( M_crit200[i*varib['line_num']:(i+1)*varib['line_num']] ) )
+			BIN_R200.append( avg_method( R_crit200[i*varib['line_num']:(i+1)*varib['line_num']] ) )
+			BIN_HVD.append( avg_method( HVD[i*varib['line_num']:(i+1)*varib['line_num']] ) )
+	
+		BIN_M200,BIN_R200,BIN_HVD = np.array(BIN_M200),np.array(BIN_R200),np.array(BIN_HVD)
+
+		# Re-pack arrays
+		BinData = np.vstack([BIN_M200,BIN_R200,BIN_HVD])
+
+		return BinData
+
+
+	def get_3d(self,Gal_P,Gal_V,ens_gal_id,los_gal_id,stack_range,ens_num,self_stack,j):
+		'''
+		This function recovers the 3D positions and velocities of the galaxies in the ensemble and los phase space.
+		'''
+
+		if self_stack == True:
+			# Create fully concatenated arrays to draw ensemble data from
+			GPX3D,GPY3D,GPZ3D = Gal_P[j][0],Gal_P[j][1],Gal_P[j][0]
+			GVX3D,GVY3D,GVZ3D = Gal_V[j][0],Gal_V[j][1],Gal_V[j][0]
 		
-		
+			# Recover ensemble 3D data
+			ens_gpx3d,ens_gpy3d,ens_gpz3d = GPX3D[ens_gal_id],GPY3D[ens_gal_id],GPZ3D[ens_gal_id]
+			ens_gvx3d,ens_gvy3d,ens_gvz3d = GVX3D[ens_gal_id],GVY3D[ens_gal_id],GVZ3D[ens_gal_id]
+
+			# Recover line_of_sight 3D data	
+			los_gpx3d,los_gpy3d,los_gpz3d = np.array(map(lambda x: GPX3D[x],los_gal_id)),np.array(map(lambda x: GPY3D[x],los_gal_id)),np.array(map(lambda x: GPZ3D[x],los_gal_id))
+			los_gvx3d,los_gvy3d,los_gvz3d = np.array(map(lambda x: GVX3D[x],los_gal_id)),np.array(map(lambda x: GVY3D[x],los_gal_id)),np.array(map(lambda x: GVZ3D[x],los_gal_id))
+
+		else:	
+			# Create fully concatenated arrays to draw ensemble data from
+			[BIN_GPX3D,BIN_GPY3D,BIN_GPZ3D] = map(np.concatenate,Gal_P[j*self.line_num:(j+1)*self.line_num].T)
+			[BIN_GVX3D,BIN_GVY3D,BIN_GVZ3D] = map(np.concatenate,Gal_V[j*self.line_num:(j+1)*self.line_num].T)
+
+			# Recover ensemble 3D data	
+			ens_gpx3d,ens_gpy3d,ens_gpz3d = BIN_GPX3D[ens_gal_id],BIN_GPY3D[ens_gal_id],BIN_GPZ3D[ens_gal_id]
+			ens_gvx3d,ens_gvy3d,ens_gvz3d = BIN_GVX3D[ens_gal_id],BIN_GVY3D[ens_gal_id],BIN_GVZ3D[ens_gal_id]
+
+			# Recover line_of_sight 3D data
+			los_gpx3d,los_gpy3d,los_gpz3d = [],[],[]
+			los_gvx3d,los_gvy3d,los_gvz3d = [],[],[]
+			for i,k in zip( np.arange(j*self.line_num,(j+1)*self.line_num), np.arange(self.line_num) ):
+				los_gpx3d.append(Gal_P[i][0][los_gal_id[k]])
+				los_gpy3d.append(Gal_P[i][1][los_gal_id[k]])
+				los_gpz3d.append(Gal_P[i][2][los_gal_id[k]])
+				los_gvx3d.append(Gal_V[i][0][los_gal_id[k]])
+				los_gvy3d.append(Gal_V[i][1][los_gal_id[k]])
+				los_gvz3d.append(Gal_P[i][2][los_gal_id[k]])
+
+			los_gpx3d,los_gpy3d,los_gpz3d = np.array(los_gpx3d),np.array(los_gpy3d),np.array(los_gpz3d)
+			los_gvx3d,los_gvy3d,los_gvz3d = np.array(los_gvx3d),np.array(los_gvy3d),np.array(los_gvz3d)
+
+		return np.array([ens_gpx3d,ens_gpy3d,ens_gpz3d]),np.array([ens_gvx3d,ens_gvy3d,ens_gvz3d]),np.array([los_gpx3d,los_gpy3d,los_gpz3d]),np.array([los_gvx3d,los_gvy3d,los_gvz3d])
+
+
+	def print_varibs(self,varibs):
+		for i in varibs:
+			print i+'\t\t'+varibs[i]
+
+
 	def print_separation(self,text,type=1):
 		if type==1:
 			print ''
