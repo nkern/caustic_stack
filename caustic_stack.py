@@ -123,8 +123,7 @@ class Stack(object):
 
 			# Append Ensemble data to Stack() container
 			names = ['ens_r','ens_v','ens_gmags','ens_rmags','ens_imags']
-			values = [ens_r,ens_v,ens_gmags,ens_rmags,ens_imags]
-			D.add(dict(zip(names,values)))
+			D.add(ez.create(names,locals()))
 
 			# Calculate individual HVD
 			ind_hvd = []
