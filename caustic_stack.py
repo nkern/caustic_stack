@@ -451,7 +451,7 @@ class Universal(object):
 		This function does pre-technique binning analysis
 		'''
 		# Unpack Arrays
-		M_crit200,R_crit200,Z,SRAD,ESRAD,HVD = HaloData
+		M_crit200,R_crit200,Z,HVD = HaloData
 
 		# Choose Averaging Method
 		if avg_meth == 'median':
@@ -520,10 +520,64 @@ class Universal(object):
 		return np.array([ens_gpx3d,ens_gpy3d,ens_gpz3d]),np.array([ens_gvx3d,ens_gvy3d,ens_gvz3d]),np.array([los_gpx3d,los_gpy3d,los_gpz3d]),np.array([los_gvx3d,los_gvy3d,los_gvz3d])
 
 
-	def print_varibs(self,varibs):
-		for i in varibs:
-			print i+'\t\t'+varibs[i]
+	def line_of_sight(self,gal_p,gal_v,halo_p,halo_v,project=True,pro_pos=None):
+		'''Line of Sight Calculations to mock projected data, if given 3D data'''
+		# Pick Position
+		new_pos = self.rand_pos(30)
+		new_pos += halo_p 
 
+		# New Halo Information
+		halo_dist = ((halo_p[0]-new_pos[0])**2 + (halo_p[1]-new_pos[1])**2 + (halo_p[2]-new_pos[2])**2)**0.5
+		halo_pos_unit = np.array([halo_p[0]-new_pos[0],halo_p[1]-new_pos[1],halo_p[2]-new_pos[2]]) / halo_dist
+		halo_vlos = np.dot(halo_pos_unit, halo_v)
+
+		# New Galaxy Information
+		gal_p = np.array(gal_p)
+		gal_v = np.array(gal_v)
+		gal_dist = ((gal_p[0]-new_pos[0])**2 + (gal_p[1]-new_pos[1])**2 + (gal_p[2]-new_pos[2])**2)**0.5
+		gal_vlos = np.zeros(gal_dist.size)
+		gal_pos_unit = np.zeros((3,gal_dist.size))	#vector from new_p to gal	
+		n = gal_dist.size
+		# Line of sight
+		code = """
+		int u,w;
+		for (u=0;u<n;++u){
+		for(w=0;w<3;++w){
+		gal_pos_unit(w,u) = (gal_p(w,u)-new_pos(w))/gal_dist(u);
+		}
+		gal_vlos(u) = gal_pos_unit(0,u)*gal_v(0,u)+gal_pos_unit(1,u)*gal_v(1,u)+gal_pos_unit(2,u)*gal_v(2,u);
+		}
+		"""
+		fast = weave.inline(code,['gal_pos_unit','n','gal_dist','gal_vlos','gal_v','new_pos','gal_p'],type_converters=converters.blitz,compiler='gcc')
+		angles = np.arccos(np.dot(halo_pos_unit,gal_pos_unit))
+		r = angles*halo_dist
+		#v_pec = gal_vlos-halo_vlos*np.dot(halo_pos_unit,gal_pos_unit)
+		z_clus_cos = self.H0*halo_dist/self.c
+		z_clus_pec = halo_vlos/self.c
+		z_clus_obs = (1+z_clus_pec)*(1+z_clus_cos)-1
+		z_gal_cos = self.H0*gal_dist/self.c
+		z_gal_pec = gal_vlos/self.c
+		z_gal_obs = (1+z_gal_pec)*(1+z_gal_cos)-1
+		v = self.c*(z_gal_obs-z_clus_obs)/(1+z_clus_obs)
+		#gal_vdisp3d[i] = np.sqrt(astStats.biweightScale(gal_v[0][np.where(gal_radius<=HaloR200[i])]-Halo_V[0],9.0)**2+astStats.biweightScale(gal_v[1][np.where(gal_radius<=HaloR200[i])]-Halo_V[1],9.0)**2+astStats.biweightScale(gal_v[2][np.where(gal_radius<=HaloR200[i])]-Halo_V[2],9.0)**2)/np.sqrt(3)
+		#print 'MY VELOCITY OF GALAXIES', gal_vdisp3d[i]
+#		particle_vdisp3d[i] = HVD*np.sqrt(3)
+#		gal_rmag_new = gal_abs_rmag# + 5*np.log10(gal_dist*1e6/10.0)
+
+		return r, v, new_pos
+
+
+
+	def print_varibs(self,varibs):
+		print '## Variables Defined in the Run'
+		print '-'*50
+		names = ['run_time','run_num','gal_num','line_num','cell_num','ens_num','halo_num','method_num','avg_meth','self_stack','mass_mix','write_data','scale_data','run_los','new_halo_cent','cent_offset','true_mems','clean_ens','bootstrap','mass_scat','center_scat','bootstrap_num','bootstrap_rep','data_loc','write_loc']
+		for i in names:
+			try:
+				print i+'\r\t\t\t'+str(varibs[i])
+			except:
+				pass
+		print '-'*50
 
 	def print_separation(self,text,type=1):
 		if type==1:
