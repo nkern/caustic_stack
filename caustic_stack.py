@@ -91,8 +91,8 @@ class Stack(object):
 
 
 
-	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,BinData=None,other_data=None,
-				run_los=False,ens_shiftgap=True,ens_reduce=True,
+	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
+				ens_shiftgap=True,ens_reduce=True,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
 		-- Takes a previously array of individual phase spaces and stacks them, then runs 
@@ -101,9 +101,11 @@ class Stack(object):
 
 		-- Relies on a few parameters to be defined outside of the function:
 			self.gal_num - Equivalent to Ngal: number of galaxies to take per cluster to then be stacked
-			self.line_num - Equivalent to Nclus: number of clusters to stack into one ensemble cluster 
+			self.line_num - Equivalent to Nclus: number of clusters to stack into one ensemble cluster
 			self.scale_data - Scale r data by R200 while stacking, then un-scale by BinR200
-			self.run_los - run caustic technique over individual cluster (aka line-of-sight) 
+			self.run_los - run caustic technique over individual cluster (aka line-of-sight)
+			self.avg_meth - method by which averaging of Bin Properties should be, 'mean' or 'median' or 'biweight' etc..
+			self.mirror - mirror phase space before solving for caustic?
 			* These parameters should be fed to initialization of Stack() class as a dictionary, for ex:
 				variables = {'run_los':False, ...... }
 				S = Stack(variables)
@@ -115,21 +117,10 @@ class Stack(object):
 		'HaloData' : 2 dimensional array containing M200, R200, HVD of Halos, with unique halos as columns
 		'stack_num' : number of individual clusters to stack into the one ensemble
 
-		'BinData' - if not fed, this takes the **mean** of the HaloData for each bin
-		'other_data' - if desired, should be a 3 dimensional array with galaxy data
-				0th axis - separates unique variables, ex. galaxy_luminosity, galaxy_dust_content
-				1st axis - separates unique phase spaces correlating to rdata phase spaces
-				2nd axis - separates unique galaxies, similar to rdata[N]
-
-
-		'run_los' - run caustic technique over individual cluster (aka line-of-sight) 
 		'ens_shiftgap' - do a shiftgapper over final ensemble phase space?
 		'ens_reduce' - after stacking, reduce ensemble phase space to Ngal gals within R200?
 
-		'feed_gal_ids' - feed the id arrays relating ensemble galaxies to their contituent
-					clusters and etc..
-
-		'feed_gal_mags' - feed magnitudes for individual galaxies
+		'feed_gal_mags' - feed magnitudes for individual galaxies, must feed all three mags if True
 
 		-- 'ens' stands for ensemble cluster
 		-- 'ind' stands for individual cluster
@@ -139,15 +130,7 @@ class Stack(object):
 		"""
 		# Unpack HaloData
 		M200,R200,HVD = HaloData
-		if BinData == None:
-			BinM200,BinR200,BinHVD = [],[],[]
-			for i in range(stack_num):
-				BinM200.append(np.mean(M200[self.line_num*i:self.line_num*(i+1)]))
-				BinR200.append(np.mean(R200[self.line_num*i:self.line_num*(i+1)]))
-				BinHVD.append(np.mean([HVD[self.line_num*i:self.line_num*(i+1)]))
-			BinM200,BinR200,BinHVD = np.array(BinM200),np.array(BinR200),np.array(BinHVD)
-		else:
-			BinM200,BinR200,BinHVD = BinData
+		BinData = self.U.Bin_Calc(M200,R200,HVD)
 
 		# Define a container for holding stacked data, D
 		D = Data()
@@ -207,7 +190,7 @@ class Stack(object):
 
 			# If run_los == True, run Caustic Technique on individual cluster
 			if self.run_los == True:
-				self.run_caustic(ind_r,ind_v,R200,HVD)
+				self.run_caustic(ind_r,ind_v,R200,HVD,mirror=self.mirror)
 				ind_caumass = self.C.M200_fbeta
 				ind_caumass_est = self.C.Mass2.M200_est
 				ind_edgemass = self.C.M200_edge
@@ -250,7 +233,7 @@ class Stack(object):
 			D.ens_hvd = astStats.biweightScale(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)],9.0)
 
 			# Run Caustic Technique!
-			self.C.run_caustic(ens_r,ens_v,BinR200,BinHVD)
+			self.C.run_caustic(ens_r,ens_v,BinR200,BinHVD,mirror=self.mirror)
 			ens_caumass = self.C.M200_fbeta
 			ens_caumass_est = self.C.Mass2.M200_est
 			ens_edgemass = self.C.M200_edge
@@ -505,34 +488,29 @@ class Universal(object):
 		return r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,samp_size
 
 
-	def Bin_Calc(self,HaloData,varib,avg_meth='mean'):
+	def Bin_Calc(self,M200,R200,HVD):
 		'''
 		This function does pre-technique binning analysis
 		'''
-		# Unpack Arrays
-		M_crit200,R_crit200,Z,HVD = HaloData
-
 		# Choose Averaging Method
 		if avg_meth == 'median':
 			avg_method = np.median
 		elif avg_meth == 'mean':
 			avg_method = np.mean
 		else:
+			print 'Average Method for Bin is Mean()'
 			avg_method = np.mean
 
 		# Calculate Bin R200 and Bin HVD, use median
 		BIN_M200,BIN_R200,BIN_HVD = [],[],[]
-		for i in range(varib['halo_num']/varib['line_num']):
-			BIN_M200.append( avg_method( M_crit200[i*varib['line_num']:(i+1)*varib['line_num']] ) )
-			BIN_R200.append( avg_method( R_crit200[i*varib['line_num']:(i+1)*varib['line_num']] ) )
-			BIN_HVD.append( avg_method( HVD[i*varib['line_num']:(i+1)*varib['line_num']] ) )
+		for i in range(self.line_num):
+			BIN_M200.append( avg_method( M200[i*self.line_num:(i+1)*self.line_num] ) )
+			BIN_R200.append( avg_method( R200[i*self.line_num:(i+1)*self.line_num] ) )
+			BIN_HVD.append( avg_method( HVD[i*self.line_num:(i+1)*self.line_num] ) )
 	
 		BIN_M200,BIN_R200,BIN_HVD = np.array(BIN_M200),np.array(BIN_R200),np.array(BIN_HVD)
 
-		# Re-pack arrays
-		BinData = np.vstack([BIN_M200,BIN_R200,BIN_HVD])
-
-		return BinData
+		return BIN_M200,BIN_R200,BIN_HVD
 
 
 	def get_3d(self,Gal_P,Gal_V,ens_gal_id,los_gal_id,stack_range,ens_num,self_stack,j):
