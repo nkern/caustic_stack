@@ -29,17 +29,19 @@ from causticpy import Caustic,CausticSurface,MassCalc
 class Data():
 	"""
 	Can be used as an open container for stacking data on itself
+	As of now, data to-be-stacked must be in numpy.array, or a
+	data type that is compatible with it 
 	"""
 	def check_varib(self,name):
 		if name in self.__dict__:
 			return True
 		else:
 			return False
-	def add(self,DATA):
+	def append(self,DATA):
 		"""
-		Takes DATA as a DICTIONARY and appends its keys to variables of the same name in the self.__dict__ 
-		Each variable in DATA should be a 1 dimensional array
-		All data types should be input and output in numpy arrays
+		Takes DATA as a DICTIONARY:
+		if the key already exists within self.__dict__ it APPENDS IT,
+		if the key does not exists within self.__dict__ it ADDS IT.
 		"""
 		# Iterate through variables defined in DATA
 		for name in DATA:
@@ -47,6 +49,15 @@ class Data():
 				self.__dict__[name] = np.append(self.__dict__[name],DATA[name])
 			else:
 				self.__dict__[name] = np.copy(DATA[name]) 
+	def replace(self,DATA):
+		"""
+		Takes DATA as a DICTIONARY:
+		if the key already exists within self.__dict__ it REPLACES IT,
+		if the key does not exists within self.__dict__ it ADDS IT.
+		"""
+		# Iterate through variables defined in DATA
+		for name in DATA:
+			self.__dict__[name] = np.copy(DATA[name])
 	def clear(self):
 		"""
 		Clears all variables in class
@@ -80,56 +91,105 @@ class Stack(object):
 
 
 
-	def caustic_stack(self,ens_data,HaloID,HaloData,BinData,stack_num,ind_data=[None]*5,ens_shiftgap=True,ens_reduce=True,run_los=False):
+	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,BinData=None,other_data=None,
+				run_los=False,ens_shiftgap=True,ens_reduce=True,
+				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
-		-- Takes an array of individual phase spaces and stacks them, then runs 
+		-- Takes a previously array of individual phase spaces and stacks them, then runs 
 		   a caustic technique over the ensemble and/or individual phase spaces.
 		-- Returns a dictionary
-		-- ens_data and ind_data should be a 3 dimensional tuple or array
 
-		'ens_r' : Should be an object with 'stack_num' rows, each with possibly variable lengths.
-		'ens_v' : Should be an object with 'stack_num' rows, each with varying or identical lengths
-		'HaloID' : 1 dimensional array containing Halo Identification Numbers
-		'HaloData' : 2 dimensional array containing M200, R200, HVD of Halos
+		-- Relies on a few parameters to be defined outside of the function:
+			self.gal_num - Equivalent to Ngal: number of galaxies to take per cluster to then be stacked
+			self.line_num - Equivalent to Nclus: number of clusters to stack into one ensemble cluster 
+			self.scale_data - Scale r data by R200 while stacking, then un-scale by BinR200
+			self.run_los - run caustic technique over individual cluster (aka line-of-sight) 
+			* These parameters should be fed to initialization of Stack() class as a dictionary, for ex:
+				variables = {'run_los':False, ...... }
+				S = Stack(variables)
+
+		"rdata" - should be a 2 dimensional array with individual phase spaces as rows
+		"vdata" - should be a 2 dimensional array with individual phase spaces as rows
+				ex. rdata[0] => 0th phase space data
+		'HaloID' : 1 dimensional array containing Halo Identification Numbers, len(HaloID) == len(rdata)
+		'HaloData' : 2 dimensional array containing M200, R200, HVD of Halos, with unique halos as columns
 		'stack_num' : number of individual clusters to stack into the one ensemble
-		
-		-- 'en' or 'ens' stands for ensemble cluster
-		-- 'in' or 'ind' stands for individual cluster
-		"""
-		# Unpack ens_data
-		ens_r,ens_v,ens_gmags,ens_rmags,ens_imags = ens_data
-	
-		# Unpack ind_data
-		ind_r,ind_v,ind_gmags,ind_rmags,ind_imags = ind_data
 
+		'BinData' - if not fed, this takes the **mean** of the HaloData for each bin
+		'other_data' - if desired, should be a 3 dimensional array with galaxy data
+				0th axis - separates unique variables, ex. galaxy_luminosity, galaxy_dust_content
+				1st axis - separates unique phase spaces correlating to rdata phase spaces
+				2nd axis - separates unique galaxies, similar to rdata[N]
+
+
+		'run_los' - run caustic technique over individual cluster (aka line-of-sight) 
+		'ens_shiftgap' - do a shiftgapper over final ensemble phase space?
+		'ens_reduce' - after stacking, reduce ensemble phase space to Ngal gals within R200?
+
+		'feed_gal_ids' - feed the id arrays relating ensemble galaxies to their contituent
+					clusters and etc..
+
+		'feed_gal_mags' - feed magnitudes for individual galaxies
+
+		-- 'ens' stands for ensemble cluster
+		-- 'ind' stands for individual cluster
+
+		-- Uppercase arrays contain data for multiple clusters,
+			lowercase arrays contain data for 1 cluster
+		"""
 		# Unpack HaloData
 		M200,R200,HVD = HaloData
-		BinM200,BinR200,BinHVD = BinData
-	
+		if BinData == None:
+			BinM200,BinR200,BinHVD = [],[],[]
+			for i in range(stack_num):
+				BinM200.append(np.mean(M200[self.line_num*i:self.line_num*(i+1)]))
+				BinR200.append(np.mean(R200[self.line_num*i:self.line_num*(i+1)]))
+				BinHVD.append(np.mean([HVD[self.line_num*i:self.line_num*(i+1)]))
+			BinM200,BinR200,BinHVD = np.array(BinM200),np.array(BinR200),np.array(BinHVD)
+		else:
+			BinM200,BinR200,BinHVD = BinData
+
 		# Define a container for holding stacked data, D
 		D = Data()
 
-		# Define End Result Arrays for Ensemble and Individual 
-		self.sample_size,self.pro_pos = [],[]
-		self.ens_gal_id,self.ens_clus_id,self.ind_gal_id = [],[],[]
+		# Create Dummy Variables for Magnitudes if necessary
+		if feed_gal_mags == False:
+			G_Mags,R_Mags,I_Mags = [],[],[]
+			for i in range(stack_num):
+				gmags.append([None]*len(rdata[i]))
+				rmags.append([None]*len(rdata[i]))
+				imags.append([None]*len(rdata[i]))
 
-		# Loop over stack_num (aka lines of sight)
+		# Create galaxy identification arrays
+		ENS_gal_id,ENS_clus_id,IND_gal_id = [],[],[]
+		gal_count = 0
+		for i in range(stack_num):
+			ENS_gal_id.append(range(gal_count,gal_count+len(rdata[i])))
+			ENS_clus_id.append([HaloID[i]]*len(rdata[i]))
+			IND_gal_id.append(range(len(rdata[i])))
+		ENS_gal_id,ENS_clus_id,ENS_gal_id = np.array(ENS_gal_id),np.array(ENS_clus_id),np.array(IND_gal_id)
+
+		# Iterate through phase spaces
 		for self.l in range(stack_num):
 
-			# Create Ensemble and Ind. Cluster IDs
-			ens_gal_id = np.arange(len(r))
-			ens_clus_id = np.array([HaloID[l]]*len(r),int)
-			ind_gal_id = np.arange(len(r))
+			# Limit Phase Space
+			r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[l],R_Mags[l],I_Mags[self.l],R200[self.l],HVD[self.l])
 
-			# Append Ensemble data to Stack() container
-			names = ['ens_r','ens_v','ens_gmags','ens_rmags','ens_imags']
-			D.add(ez.create(names,locals()))
+			# Build Ensemble and LOS Phase Spaces
+			ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,HaloData.T[l])
+
+			# If Scale data before stack is desired
+			if scale_data == True:
+				ens_r /= BinR200[self.l]
+
+			# Stack Ensemble Data by appending to Data() container
+			names = ['ens_r','ens_v','ens_gmags','ens_rmags','ens_imags','ens_gal_id','ens_clus_id']
+			D.append(ez.create(names,locals()))
 
 			# Calculate individual HVD
-			ind_hvd = []
-			if run_los == True:
+			if self.run_los == True:
 				# Pick out gals within r200
-				within = np.where(ind_r<R200[l])[0]
+				within = np.where(ind_r<R200[self.l])[0]
 				gal_count = len(within)
 				if gal_count <= 3:
 					'''biweightScale can't take less than 4 elements'''
@@ -146,8 +206,7 @@ class Stack(object):
 						ind_hvd = np.std(np.copy(ind_v)[within])
 
 			# If run_los == True, run Caustic Technique on individual cluster
-			ind_caumass,ind_caumass_est,ind_edgemass,ind_edgemass_est,ind_causurf,ind_nfwsurf = [],[],[],[],[],[]
-			if run_los == True:
+			if self.run_los == True:
 				self.run_caustic(ind_r,ind_v,R200,HVD)
 				ind_caumass = self.C.M200_fbeta
 				ind_caumass_est = self.C.Mass2.M200_est
@@ -161,12 +220,12 @@ class Stack(object):
 			names = ['ind_r','ind_v','ind_gal_id','ind_gmags','ind_rmags','ind_imags',
 				'ind_hvd','ind_caumass','ind_caumass_est','ind_edgemass','ind_edgemass_est',
 				'ind_causurf','ind_nfwsurf']
-			D.add(ez.create(names,locals()))
+			D.append(ez.create(names,locals()))
 
 			# Re-scale data if scale_data == True:
 			if self.scale_data == True:
 				D.ens_r *= BinR200
-	
+
 			# Create Ensemble Data Block
 			D.ens_data = np.vstack([D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags])
 
@@ -202,7 +261,7 @@ class Stack(object):
 
 			# Append Data
 			names = ['ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf']
-			D.add(ez.create(names,locals()))
+			D.append(ez.create(names,locals()))
 
 			# Output Data
 			return self.D.__dict__
@@ -217,7 +276,7 @@ class Universal(object):
 		self.__dict__.update(varib)
 
 
-	def build(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,halodata,method_num=0):
+	def build(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,halodata):
 		"""
 		This function builds the ensemble and individual cluster phase spaces, depending on fed parameters
 		method 0 : top Ngal brightest
@@ -232,10 +291,10 @@ class Universal(object):
 		imags : SDSS i magnitude
 		gmags : SDSS g magnitude
 		halodata : 2 dimensional array, with info on halo properties
-		- m200,r200,hvd,z
+		- m200,r200,hvd
 		"""
 		# Unpack halodata array into local namespace
-		m200,r200,hvd,z = halodata
+		m200,r200,hvd = halodata
 
 		# Sort galaxies by r Magnitude
 		bright = np.argsort(rmags)
