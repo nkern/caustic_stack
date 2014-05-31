@@ -17,6 +17,8 @@ the most basic level, this code needs only the X, Y, Z position of the galaxies 
 
 **Christopher Miller**, University of Michigan
 
+**Alejo Stark**, University of Michigan
+
 ### License: ###
 Copyright 2014, the Authors
 
