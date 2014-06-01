@@ -29,8 +29,7 @@ from causticpy import Caustic,CausticSurface,MassCalc
 class Data():
 	"""
 	Can be used as an open container for stacking data on itself
-	As of now, data to-be-stacked must be in numpy.array, or a
-	data type that is compatible with it 
+	As of now, data to-be-stacked must be as a list
 	"""
 	def check_varib(self,name):
 		if name in self.__dict__:
@@ -41,29 +40,56 @@ class Data():
 		"""
 		Takes DATA as a DICTIONARY:
 		if the key already exists within self.__dict__ it APPENDS IT,
-		if the key does not exists within self.__dict__ it ADDS IT.
+		if the key does not exist within self.__dict__ it ADDS IT.
 		"""
 		# Iterate through variables defined in DATA
 		for name in DATA:
 			if self.check_varib(name) == True:
-				self.__dict__[name] = np.append(self.__dict__[name],DATA[name])
+				self.__dict__[name].append(DATA[name])
 			else:
-				self.__dict__[name] = np.copy(DATA[name]) 
-	def replace(self,DATA):
+				self.__dict__[name] = [DATA[name]]
+	def extend(self,DATA):
 		"""
 		Takes DATA as a DICTIONARY:
-		if the key already exists within self.__dict__ it REPLACES IT,
-		if the key does not exists within self.__dict__ it ADDS IT.
+		if the key already exists within self.__dict__ it EXTENDS IT,
+		if the key does not exist within self.__dict__ it ADDS IT.
 		"""
 		# Iterate through variables defined in DATA
 		for name in DATA:
-			self.__dict__[name] = np.copy(DATA[name])
+			if self.check_varib(name) == True:
+				try:
+					self.__dict__[name].extend(list(DATA[name]))
+				except:
+					self.__dict__[name].extend([DATA[name]])
+			else:
+				try:
+					self.__dict__[name] = list(DATA[name])
+				except:
+					self.__dict__[name] = [DATA[name]]
+	def add(self,DATA):
+		"""
+		Takes DATA as a DICTIONARY:
+		if the key already exists within self.__dict__ it REPLACES IT,
+		if the key does not exist within self.__dict__ it ADDS IT.
+		"""
+		# Iterate through variables defined in DATA
+		for name in DATA:
+			self.__dict__[name] = np.array(DATA[name])
 	def clear(self):
 		"""
 		Clears all variables in class
 		"""
 		self.__dict__.clear()
 
+	def to_array(self,names):
+		"""
+		Turns data into arrays
+		"""
+		for i in names:
+			try:
+				self.__dict__[i] = np.array(self.__dict__[i])
+			except:
+				pass
 
 
 class Stack(object):
@@ -76,19 +102,16 @@ class Stack(object):
 		self.C = Caustic()
 		self.U = Universal(varib)
 
-	def run_caustic(self,rvalues,vvalues,R200,HVD,clus_z=0,shiftgap=False,mirror=True):
+	def run_caustic(self,rvalues,vvalues,R200,HVD,clus_z=0,shiftgap=False,mirror=True,ensemble=True):
 		"""
 		Calls causticpy's run_caustic function
 		"""
-		self.U.print_separation("## Working on Halo Number: "+str(self.l),type=2)
-		
 		# Feed caustic dummy vertical array
 		length = len(rvalues)
 		dummy = np.zeros(length).reshape(length,1)
 
 		# Run Caustic
 		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,mirror=mirror)
-
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
@@ -130,44 +153,51 @@ class Stack(object):
 		"""
 		# Unpack HaloData
 		M200,R200,HVD = HaloData
-		BinData = self.U.Bin_Calc(M200,R200,HVD)
+		if self.avg_meth == 'mean':
+			BinM200 = np.mean(M200)
+			BinR200 = np.mean(R200)
+			BinHVD = np.mean(HVD)
+		elif self.avg_meth == 'median':
+			BinM200 = np.median(M200)
+			BinR200 = np.median(R200)
+			BinHVD = np.median(HVD)
 
 		# Define a container for holding stacked data, D
 		D = Data()
 
 		# Create Dummy Variables for Magnitudes if necessary
-		if feed_gal_mags == False:
+		if feed_mags == False:
 			G_Mags,R_Mags,I_Mags = [],[],[]
 			for i in range(stack_num):
-				gmags.append([None]*len(rdata[i]))
-				rmags.append([None]*len(rdata[i]))
-				imags.append([None]*len(rdata[i]))
+				gmags.append([None]*len(Rdata[i]))
+				rmags.append([None]*len(Rdata[i]))
+				imags.append([None]*len(Rdata[i]))
 
 		# Create galaxy identification arrays
 		ENS_gal_id,ENS_clus_id,IND_gal_id = [],[],[]
 		gal_count = 0
 		for i in range(stack_num):
-			ENS_gal_id.append(range(gal_count,gal_count+len(rdata[i])))
-			ENS_clus_id.append([HaloID[i]]*len(rdata[i]))
-			IND_gal_id.append(range(len(rdata[i])))
+			ENS_gal_id.append(np.arange(gal_count,gal_count+len(Rdata[i])))
+			ENS_clus_id.append(np.array([HaloID[i]]*len(Rdata[i])))
+			IND_gal_id.append(np.arange(len(Rdata[i])))
 		ENS_gal_id,ENS_clus_id,ENS_gal_id = np.array(ENS_gal_id),np.array(ENS_clus_id),np.array(IND_gal_id)
 
 		# Iterate through phase spaces
 		for self.l in range(stack_num):
 
 			# Limit Phase Space
-			r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[l],R_Mags[l],I_Mags[self.l],R200[self.l],HVD[self.l])
+			r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[self.l],R_Mags[self.l],I_Mags[self.l],R200[self.l],HVD[self.l])
 
 			# Build Ensemble and LOS Phase Spaces
-			ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,HaloData.T[l])
+			ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,HaloData.T[self.l])
 
 			# If Scale data before stack is desired
-			if scale_data == True:
-				ens_r /= BinR200[self.l]
+			if self.scale_data == True:
+				ens_r /= BinR200
 
 			# Stack Ensemble Data by appending to Data() container
 			names = ['ens_r','ens_v','ens_gmags','ens_rmags','ens_imags','ens_gal_id','ens_clus_id']
-			D.append(ez.create(names,locals()))
+			D.extend(ez.create(names,locals()))
 
 			# Calculate individual HVD
 			if self.run_los == True:
@@ -190,7 +220,8 @@ class Stack(object):
 
 			# If run_los == True, run Caustic Technique on individual cluster
 			if self.run_los == True:
-				self.run_caustic(ind_r,ind_v,R200,HVD,mirror=self.mirror)
+				self.U.print_separation('# Running Caustic for line of sight '+str(self.l),type=2)
+				self.run_caustic(ind_r,ind_v,R200[self.l],HVD[self.l],mirror=self.mirror)
 				ind_caumass = self.C.M200_fbeta
 				ind_caumass_est = self.C.Mass2.M200_est
 				ind_edgemass = self.C.M200_edge
@@ -205,49 +236,53 @@ class Stack(object):
 				'ind_causurf','ind_nfwsurf']
 			D.append(ez.create(names,locals()))
 
-			# Re-scale data if scale_data == True:
-			if self.scale_data == True:
-				D.ens_r *= BinR200
+		# Re-scale data if scale_data == True:
+		if self.scale_data == True:
+			D.ens_r *= BinR200
 
-			# Create Ensemble Data Block
-			D.ens_data = np.vstack([D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags])
+		# Create Ensemble Data Block
+		D.ens_data = np.vstack([D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags])
 
-			# Shiftgapper for Interloper Treatment
-			if ens_shiftgap == True:
-				D.ens_data = self.C.shiftgapper(D.ens_data.T).T
-				D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
+		self.D = D
 
-			# Sort by R_Mag
-			bright = np.argsort(D.ens_rmags)
-			D.ens_data = D.ens_data.T[bright].T
+		# Shiftgapper for Interloper Treatment
+		if ens_shiftgap == True:
+			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
-			# Reduce System Down to gal_num richness within BinR200
-			if ens_reduce == True:
-				within = np.where(D.ens_r <= BinR200)[0]
-				end = within[:self.gal_num*self.line_num + 1][-1]
-				D.ens_data = D.ens_data.T[:end].T
-				D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
+		# Sort by R_Mag
+		bright = np.argsort(D.ens_rmags)
+		D.ens_data = D.ens_data.T[bright].T
+		D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
-			# Calculate Ensemble Velocity Dispersion for galaxies within R200
-			D.ens_hvd = astStats.biweightScale(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)],9.0)
+		# Reduce System Down to gal_num richness within BinR200
+		if ens_reduce == True:
+			within = np.where(D.ens_r <= BinR200)[0]
+			end = within[:self.gal_num*self.line_num + 1][-1]
+			D.ens_data = D.ens_data.T[:end].T
+			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
-			# Run Caustic Technique!
-			self.C.run_caustic(ens_r,ens_v,BinR200,BinHVD,mirror=self.mirror)
-			ens_caumass = self.C.M200_fbeta
-			ens_caumass_est = self.C.Mass2.M200_est
-			ens_edgemass = self.C.M200_edge
-			ens_edgemass_est = self.C.MassE.M200_est
-			ens_causurf = self.C.caustic_profile
-			ens_nfwsurf = self.C.caustic_fit
-			self.C.__dict__.clear()
+		# Calculate Ensemble Velocity Dispersion for galaxies within R200
+		D.ens_hvd = astStats.biweightScale(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)],9.0)
 
-			# Append Data
-			names = ['ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf']
-			D.append(ez.create(names,locals()))
+		# Run Caustic Technique!
+		try: self.U.print_separation('## Running Caustic on Ensemble '+str(self.j),type=1)
+		except: pass
+		self.run_caustic(D.ens_r,D.ens_v,BinR200,BinHVD,mirror=self.mirror)
+		ens_caumass = self.C.M200_fbeta
+		ens_caumass_est = self.C.Mass2.M200_est
+		ens_edgemass = self.C.M200_edge
+		ens_edgemass_est = self.C.MassE.M200_est
+		ens_causurf = self.C.caustic_profile
+		ens_nfwsurf = self.C.caustic_fit
+		self.C.__dict__.clear()
 
-			# Output Data
-			return self.D.__dict__
+		# Append Data
+		names = ['ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf']
+		D.append(ez.create(names,locals()))
+
+		# Output Data
+		return self.D.__dict__
 
 
 class Universal(object):
@@ -257,6 +292,7 @@ class Universal(object):
 	
 	def __init__(self,varib):
 		self.__dict__.update(varib)
+		self.C = Caustic()
 
 
 	def build(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,halodata):
@@ -472,7 +508,14 @@ class Universal(object):
 		''' Sort data by magnitude, and elimite values outside phase space limits '''
 		# Sort by ascending r magnitude (bright to dim)
 		sorts = np.argsort(rmags)
-		r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags = r[sorts],v[sorts],en_gal_id[sorts],en_clus_id[sorts],ln_gal_id[sorts],gmags[sorts],rmags[sorts],imags[sorts]
+		r = r[sorts]
+		v = v[sorts]
+		en_gal_id = en_gal_id[sorts]
+		en_clus_id = en_clus_id[sorts]
+		ln_gal_id = ln_gal_id[sorts]
+		gmags = gmags[sorts]
+		rmags = rmags[sorts]
+		imags = imags[sorts]
 
 		# Limit Phase Space
 		sample = np.where( (r < r200*self.r_limit) & (v > -self.v_limit) & (v < self.v_limit) )[0] 
@@ -493,9 +536,9 @@ class Universal(object):
 		This function does pre-technique binning analysis
 		'''
 		# Choose Averaging Method
-		if avg_meth == 'median':
+		if self.avg_meth == 'median':
 			avg_method = np.median
-		elif avg_meth == 'mean':
+		elif self.avg_meth == 'mean':
 			avg_method = np.mean
 		else:
 			print 'Average Method for Bin is Mean()'
@@ -604,11 +647,10 @@ class Universal(object):
 		return r, v, new_pos
 
 
-
 	def print_varibs(self,varibs):
 		print '## Variables Defined in the Run'
 		print '-'*50
-		names = ['run_time','run_num','gal_num','line_num','cell_num','ens_num','halo_num','method_num','avg_meth','self_stack','mass_mix','write_data','scale_data','run_los','new_halo_cent','cent_offset','true_mems','clean_ens','bootstrap','mass_scat','center_scat','bootstrap_num','bootstrap_rep','data_loc','write_loc']
+		names = ['run_time','run_num','gal_num','line_num','cell_num','ens_num','halo_num','method_num','avg_meth','self_stack','mass_mix','write_data','scale_data','run_los','mirror','new_halo_cent','cent_offset','true_mems','init_clean','bootstrap','mass_scat','center_scat','bootstrap_num','bootstrap_rep','data_loc','write_loc']
 		for i in names:
 			try:
 				print i+'\r\t\t\t'+str(varibs[i])
