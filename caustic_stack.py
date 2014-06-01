@@ -74,7 +74,11 @@ class Data():
 		"""
 		# Iterate through variables defined in DATA
 		for name in DATA:
-			self.__dict__[name] = np.array(DATA[name])
+			try:
+				len(DATA[name])
+				self.__dict__[name] = np.array(DATA[name])
+			except:
+				self.__dict__[name] = np.array([DATA[name]])
 	def clear(self):
 		"""
 		Clears all variables in class
@@ -90,7 +94,6 @@ class Data():
 				self.__dict__[i] = np.array(self.__dict__[i])
 			except:
 				pass
-
 
 class Stack(object):
 	"""
@@ -151,6 +154,9 @@ class Stack(object):
 		-- Uppercase arrays contain data for multiple clusters,
 			lowercase arrays contain data for 1 cluster
 		"""
+		# Define a container for holding stacked data, D
+		D = Data()
+
 		# Unpack HaloData
 		M200,R200,HVD = HaloData
 		if self.avg_meth == 'mean':
@@ -162,8 +168,9 @@ class Stack(object):
 			BinR200 = np.median(R200)
 			BinHVD = np.median(HVD)
 
-		# Define a container for holding stacked data, D
-		D = Data()
+		print np.mean(M200)
+		# Append to Data
+		D.add({'BinM200':BinM200,'BinR200':BinR200,'BinHVD':BinHVD})	
 
 		# Create Dummy Variables for Magnitudes if necessary
 		if feed_mags == False:
@@ -222,12 +229,12 @@ class Stack(object):
 			if self.run_los == True:
 				self.U.print_separation('# Running Caustic for line of sight '+str(self.l),type=2)
 				self.run_caustic(ind_r,ind_v,R200[self.l],HVD[self.l],mirror=self.mirror)
-				ind_caumass = self.C.M200_fbeta
-				ind_caumass_est = self.C.Mass2.M200_est
-				ind_edgemass = self.C.M200_edge
-				ind_edgemass_est = self.C.MassE.M200_est
-				ind_causurf = self.C.caustic_profile
-				ind_nfwsurf = self.C.caustic_fit
+				ind_caumass = np.array([self.C.M200_fbeta])
+				ind_caumass_est = np.array([self.C.Mass2.M200_est])
+				ind_edgemass = np.array([self.C.M200_edge])
+				ind_edgemass_est = np.array([self.C.MassE.M200_est])
+				ind_causurf = np.array([self.C.caustic_profile])
+				ind_nfwsurf = np.array([self.C.caustic_fit])
 				self.C.__dict__.clear()
 
 			# Append Individual Cluster Data
@@ -242,8 +249,6 @@ class Stack(object):
 
 		# Create Ensemble Data Block
 		D.ens_data = np.vstack([D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags])
-
-		self.D = D
 
 		# Shiftgapper for Interloper Treatment
 		if ens_shiftgap == True:
@@ -269,20 +274,20 @@ class Stack(object):
 		try: self.U.print_separation('## Running Caustic on Ensemble '+str(self.j),type=1)
 		except: pass
 		self.run_caustic(D.ens_r,D.ens_v,BinR200,BinHVD,mirror=self.mirror)
-		ens_caumass = self.C.M200_fbeta
-		ens_caumass_est = self.C.Mass2.M200_est
-		ens_edgemass = self.C.M200_edge
-		ens_edgemass_est = self.C.MassE.M200_est
-		ens_causurf = self.C.caustic_profile
-		ens_nfwsurf = self.C.caustic_fit
+		ens_caumass = np.array([self.C.M200_fbeta])
+		ens_caumass_est = np.array([self.C.Mass2.M200_est])
+		ens_edgemass = np.array([self.C.M200_edge])
+		ens_edgemass_est = np.array([self.C.MassE.M200_est])
+		ens_causurf = np.array([self.C.caustic_profile])
+		ens_nfwsurf = np.array([self.C.caustic_fit])
 		self.C.__dict__.clear()
 
 		# Append Data
 		names = ['ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf']
-		D.append(ez.create(names,locals()))
+		D.add(ez.create(names,locals()))
 
 		# Output Data
-		return self.D.__dict__
+		return D.__dict__
 
 
 class Universal(object):
