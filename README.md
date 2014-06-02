@@ -1,6 +1,6 @@
 # caustic_stack
 
-Description:
+### Description: ###
 
 Takes kinematic data of galaxies and overlays their individual phase spaces--clustercentric-radius
 and line-of-sight velocity--on top of each other ("stacking"), to create an ensemble phase space or
