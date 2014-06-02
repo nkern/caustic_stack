@@ -11,6 +11,7 @@ the most basic level, this code needs only the X, Y, Z position of the galaxies 
 
 ### Installing: ###
 Download caustic_stack/ from github:
+
 	$ git clone git@github.com:nkern/caustic_stack.git
 
 Add location of directory to path. In bash:
