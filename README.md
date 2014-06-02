@@ -15,7 +15,8 @@ Download caustic_stack/ from github:
 	$ git clone git@github.com:nkern/caustic_stack.git
 
 Add location of directory to path. In bash:
-export PYTHONPATH=/where_ever_this_folder_lives/:$PYTHONPATH
+
+export PYTHONPATH=/where_caustic_stack_lives/:$PYTHONPATH
 
 ### Requirements: ###
 See causticpy's requirements for basic dependencies: https://github.com/giffordw/CausticMass
