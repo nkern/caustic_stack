@@ -168,7 +168,6 @@ class Stack(object):
 			BinR200 = np.median(R200)
 			BinHVD = np.median(HVD)
 
-		print np.mean(M200)
 		# Append to Data
 		D.add({'BinM200':BinM200,'BinR200':BinR200,'BinHVD':BinHVD})	
 
@@ -227,15 +226,14 @@ class Stack(object):
 
 			# If run_los == True, run Caustic Technique on individual cluster
 			if self.run_los == True:
-				self.U.print_separation('# Running Caustic for line of sight '+str(self.l),type=2)
+				self.U.print_separation('# Running Caustic for LOS '+str(self.l),type=2)
 				self.run_caustic(ind_r,ind_v,R200[self.l],HVD[self.l],mirror=self.mirror)
 				ind_caumass = np.array([self.C.M200_fbeta])
 				ind_caumass_est = np.array([self.C.Mass2.M200_est])
 				ind_edgemass = np.array([self.C.M200_edge])
 				ind_edgemass_est = np.array([self.C.MassE.M200_est])
-				ind_causurf = np.array([self.C.caustic_profile])
-				ind_nfwsurf = np.array([self.C.caustic_fit])
-				self.C.__dict__.clear()
+				ind_causurf = np.array(self.C.caustic_profile)
+				ind_nfwsurf = np.array(self.C.caustic_fit)
 
 			# Append Individual Cluster Data
 			names = ['ind_r','ind_v','ind_gal_id','ind_gmags','ind_rmags','ind_imags',
@@ -271,19 +269,21 @@ class Stack(object):
 		D.ens_hvd = astStats.biweightScale(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)],9.0)
 
 		# Run Caustic Technique!
-		try: self.U.print_separation('## Running Caustic on Ensemble '+str(self.j),type=1)
+		try: self.U.print_separation('# Running Caustic on Ensemble '+str(self.j),type=2)
 		except: pass
 		self.run_caustic(D.ens_r,D.ens_v,BinR200,BinHVD,mirror=self.mirror)
 		ens_caumass = np.array([self.C.M200_fbeta])
 		ens_caumass_est = np.array([self.C.Mass2.M200_est])
 		ens_edgemass = np.array([self.C.M200_edge])
 		ens_edgemass_est = np.array([self.C.MassE.M200_est])
-		ens_causurf = np.array([self.C.caustic_profile])
-		ens_nfwsurf = np.array([self.C.caustic_fit])
-		self.C.__dict__.clear()
+		ens_causurf = np.array(self.C.caustic_profile)
+		ens_nfwsurf = np.array(self.C.caustic_fit)
+
+		# Other Arrays
+		x_range = self.C.x_range
 
 		# Append Data
-		names = ['ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf']
+		names = ['ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','x_range']
 		D.add(ez.create(names,locals()))
 
 		# Output Data
