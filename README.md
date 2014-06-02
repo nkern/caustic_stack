@@ -14,7 +14,7 @@ Download caustic_stack/ from github:
 
 	$ git clone git@github.com:nkern/caustic_stack.git
 
-Add location of directory to path. In bash:
+Add location of directory to path. In bash, append this to your ~/.bashrc or ~/.bash_profile:
 
 export PYTHONPATH=/where_caustic_stack_lives/:$PYTHONPATH
 
