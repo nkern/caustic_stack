@@ -9,6 +9,21 @@ the most basic level, this code needs only the X, Y, Z position of the galaxies 
 
 **version** : 0.1
 
+### Installing: ###
+Download caustic_stack/ from github:
+	$ git clone git@github.com:nkern/caustic_stack.git
+
+Add location of directory to path. In bash:
+export PYTHONPATH=/where_ever_this_folder_lives/:$PYTHONPATH
+
+### Requirements: ###
+See causticpy's requirements for basic dependencies: https://github.com/giffordw/CausticMass
+
+In addition, you need DictEZ.py and AttrDict.py, found in caustic_stack/
+
+### Using caustic_stack ###
+See RunningTheCode.pdf to see the outline of the code and worked examples. Within caustic_stack/ there is a folder "example/", that details how to use caustic_stack/ in tandem with other scripts to make working with large data sets easier.
+
 ### Authors: ###
 
 **Nicholas Kern**, University of Michigan
@@ -20,6 +35,6 @@ the most basic level, this code needs only the X, Y, Z position of the galaxies 
 **Alejo Stark**, University of Michigan
 
 ### License: ###
-Copyright 2014, the Authors
+Copyright 2014, the authors.
 
 
