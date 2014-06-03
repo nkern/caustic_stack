@@ -3,11 +3,14 @@
 caustic_stack.py
 =================
 
-Stack individual clusters' phase spaces and run caustic technique
+Stack individual clusters' phase spaces into an ensemble and run caustic technique
 
+----------------------------------
+Nick Kern, University of Michigan
+nkern@umich.edu
+Version 0.1
+Updated: May, 2014
 """
-__author__ = ['Nicholas Kern','nkern@umich.edu']
-__version__ = ['0.1']
 
 # Load Modules
 import numpy as np
@@ -123,7 +126,7 @@ class Stack(object):
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
-				ens_shiftgap=True,gal_reduce=True,
+				fed_halo_data=True,ens_shiftgap=True,gal_reduce=True,stack_raw=False,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
 		-- Takes a previously array of individual phase spaces and stacks them, then runs 
@@ -150,6 +153,7 @@ class Stack(object):
 
 		'ens_shiftgap' - do a shiftgapper over final ensemble phase space?
 		'gal_reduce' - before caustic run, reduce ensemble phase space to Ngal gals within R200?
+		'stack_raw' - don't worry about limiting or building the phase space, just stack the Rdata and Vdata together as is
 
 		'feed_gal_mags' - feed magnitudes for individual galaxies, must feed all three mags if True
 
@@ -163,18 +167,21 @@ class Stack(object):
 		D = Data()
 
 		# Unpack HaloData
-		M200,R200,HVD = HaloData
-		if self.avg_meth == 'mean':
-			BinM200 = np.mean(M200)
-			BinR200 = np.mean(R200)
-			BinHVD = np.mean(HVD)
-		elif self.avg_meth == 'median':
-			BinM200 = np.median(M200)
-			BinR200 = np.median(R200)
-			BinHVD = np.median(HVD)
-
-		# Append to Data
-		D.add({'BinM200':BinM200,'BinR200':BinR200,'BinHVD':BinHVD})	
+		if HaloData == None:
+			fed_halo_data = False
+		else:
+			fed_halo_data = True
+			M200,R200,HVD = HaloData
+			if self.avg_meth == 'mean':
+				BinM200 = np.mean(M200)
+				BinR200 = np.mean(R200)
+				BinHVD = np.mean(HVD)
+			elif self.avg_meth == 'median':
+				BinM200 = np.median(M200)
+				BinR200 = np.median(R200)
+				BinHVD = np.median(HVD)
+			# Append to Data
+			D.add({'BinM200':BinM200,'BinR200':BinR200,'BinHVD':BinHVD})	
 
 		# Create Dummy Variables for Magnitudes if necessary
 		if feed_mags == False:
@@ -197,10 +204,12 @@ class Stack(object):
 		for self.l in range(stack_num):
 
 			# Limit Phase Space
-			r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[self.l],R_Mags[self.l],I_Mags[self.l],R200[self.l],HVD[self.l])
+			if stack_raw == False:
+				r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[self.l],R_Mags[self.l],I_Mags[self.l],R200[self.l],HVD[self.l])
 
 			# Build Ensemble and LOS Phase Spaces
-			ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,HaloData.T[self.l].T)
+			if stack_raw == False:
+				ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,HaloData.T[self.l].T)
 
 			# If Scale data before stack is desired
 			if self.scale_data == True:
@@ -221,9 +230,9 @@ class Stack(object):
 				ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = ind_data
 	
 				# Reduce phase space
-				if gal_reduce == True:
+				if stack_raw == False and gal_reduce == True:
 					within = np.where(ind_r <= R200[self.l])[0]
-					end = within[:self.gal_num+1][-1]
+					end = within[:self.gal_num + 1][-1]
 					ind_data = ind_data.T[:end].T
 					ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = ind_data
 	
@@ -270,7 +279,7 @@ class Stack(object):
 		D.ens_data = np.vstack([D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags])
 
 		# Shiftgapper for Interloper Treatment
-		if ens_shiftgap == True:
+		if stack_raw == False and ens_shiftgap == True:
 			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
@@ -280,7 +289,7 @@ class Stack(object):
 		D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
 		# Reduce System Down to gal_num richness within BinR200
-		if gal_reduce == True:
+		if stack_raw and gal_reduce == True:
 			within = np.where(D.ens_r <= BinR200)[0]
 			end = within[:self.gal_num*self.line_num + 1][-1]
 			D.ens_data = D.ens_data.T[:end].T
@@ -412,10 +421,7 @@ class Universal(object):
 		sort = np.argsort(rmags2)
 		r2,v2,ln_gal_id,gmags2,rmags2,imags2 = r2[sort],v2[sort],ln_gal_id[sort],gmags2[sort],rmags2[sort],imags2[sort]
 
-		within = np.where(r2<=r200)[0]		# re-calculate within array with new sample
-		# Now feed ln arrays correct gal_num richness within r200
-		end = within[:gal_num + 1][-1]
-		ln_r,ln_v,ln_gal_id,ln_gmags,ln_rmags,ln_imags = r2[:end],v2[:end],ln_gal_id[:end],gmags2[:end],rmags2[:end],imags2[:end]	
+		ln_r,ln_v,ln_gal_id,ln_gmags,ln_rmags,ln_imags = r2,v2,ln_gal_id,gmags2,rmags2,imags2
 
 		# Done! Now we have en_r and ln_r arrays, which will either be stacked (former) or put straight into Caustic technique (latter)
 		return en_r,en_v,en_gal_id,en_clus_id,en_gmags,en_rmags,en_imags,ln_r,ln_v,ln_gal_id,ln_gmags,ln_rmags,ln_imags
