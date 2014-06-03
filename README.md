@@ -5,7 +5,7 @@
 Takes kinematic data of galaxies and overlays their individual phase spaces--clustercentric-radius
 and line-of-sight velocity--on top of each other ("stacking"), to create an ensemble phase space or
 ensemble cluster. It then runs the caustic technique on the ensemble cluster's phase space. At 
-the most basic level, this code needs only the X, Y, Z position of the galaxies in a cube. 
+the most basic level, this code needs only radius and velocity data of galaxies from multiple clusters.
 
 **version** : 0.1
 
