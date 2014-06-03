@@ -122,11 +122,11 @@ class Stack(object):
 		dummy = np.zeros(length).reshape(length,1)
 
 		# Run Caustic
-		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,mirror=mirror)
+		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,mirror=mirror,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
-				fed_halo_data=True,ens_shiftgap=True,gal_reduce=True,stack_raw=False,
+				ens_shiftgap=True,gal_reduce=True,stack_raw=False,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
 		-- Takes a previously array of individual phase spaces and stacks them, then runs 
@@ -271,6 +271,11 @@ class Stack(object):
 				'ind_causurf','ind_nfwsurf']
 			D.append(ez.create(names,locals()))
 
+
+		# Turn Ensemble into Arrays
+		names = ['ens_r','ens_v','ens_gal_id','ens_clus_id','ens_gmags','ens_rmags','ens_imags','ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','ens_edgesurf']
+		D.to_array(names,ravel=True)
+
 		# Re-scale data if scale_data == True:
 		if self.scale_data == True:
 			D.ens_r *= BinR200
@@ -318,8 +323,10 @@ class Stack(object):
 
 		# Turn Individual Data into Arrays
 		if self.run_los == True:
-			names = ['ind_caumass','ind_caumass_est','ind_causurf','ind_nfwsurf','ind_edgemass','ind_edgemass_est','ind_edgesurf']
+			names = ['ind_caumass','ind_caumass_est','ind_edgemass','ind_edgemass_est','ind_hvd']
 			D.to_array(names,ravel=True)
+			names = ['ind_r','ind_v','ind_gal_id','ind_gmags','ind_rmags','ind_imags','ind_causurf','ind_nfwsurf','ind_edgesurf']
+			D.to_array(names)	
 
 		# Output Data
 		return D.__dict__
@@ -708,11 +715,6 @@ class Universal(object):
 			print str(text)
 			print '-'*30
 		return
-
-
-
-
-
 
 
 
