@@ -122,7 +122,7 @@ class Stack(object):
 		dummy = np.zeros(length).reshape(length,1)
 
 		# Run Caustic
-		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,mirror=mirror,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
+		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,mirror=mirror,edge_perc=self.edge_perc,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
