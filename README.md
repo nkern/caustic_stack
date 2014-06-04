@@ -24,7 +24,7 @@ See causticpy's requirements for basic dependencies: https://github.com/giffordw
 In addition, you need DictEZ.py and AttrDict.py, found in caustic_stack/
 
 ### Using caustic_stack ###
-See RunningTheCode.pdf to see the outline of the code and worked examples. Within caustic_stack/ there is a folder "example/", that details how to use caustic_stack/ in tandem with other scripts to make working with large data sets easier.
+See RunningTheCode.pdf to see the outline of the code and worked examples.
 
 ### Authors: ###
 
