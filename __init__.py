@@ -54,10 +54,13 @@ class Data():
 			names = keys
 		# Iterate through variables defined in DATA
 		for name in names:
-			if self.check_varib(name) == True:
-				self.__dict__[name].append(DATA[name])
-			else:
-				self.__dict__[name] = [DATA[name]]
+			try:
+				if self.check_varib(name) == True:
+					self.__dict__[name].append(DATA[name])
+				else:
+					self.__dict__[name] = [DATA[name]]
+			except KeyError:
+				pass
 	def extend(self,DATA,keys=None):
 		"""
 		Takes DATA as a DICTIONARY:
@@ -70,16 +73,19 @@ class Data():
                         names = keys
 		# Iterate through variables defined in DATA
 		for name in names:
-			if self.check_varib(name) == True:
-				try:
-					self.__dict__[name].extend(list(DATA[name]))
-				except:
-					self.__dict__[name].extend([DATA[name]])
-			else:
-				try:
-					self.__dict__[name] = list(DATA[name])
-				except:
-					self.__dict__[name] = [DATA[name]]
+			try:
+				if self.check_varib(name) == True:
+					try:
+						self.__dict__[name].extend(list(DATA[name]))
+					except:
+						self.__dict__[name].extend([DATA[name]])
+				else:
+					try:
+						self.__dict__[name] = list(DATA[name])
+					except:
+						self.__dict__[name] = [DATA[name]]
+			except:
+				pass
 	def add(self,DATA,keys=None):
 		"""
 		Takes DATA as a DICTIONARY:
@@ -93,11 +99,14 @@ class Data():
 		# Iterate through variables defined in DATA
 		for name in names:
 			try:
-				len(DATA[name])
-				self.__dict__[name] = np.array(DATA[name])
+				try:
+					len(DATA[name])
+					self.__dict__[name] = np.array(DATA[name])
+				except:
+					self.__dict__[name] = np.array([DATA[name]])
 			except:
-				self.__dict__[name] = np.array([DATA[name]])
-	def clear(self):
+				pass
+	def clear(self):	
 		"""
 		Clears all variables in class
 		"""
@@ -344,12 +353,13 @@ class Stack(object):
 		ens_edgemass_est = np.array([self.C.MassE.M200_est])
 		ens_causurf = np.array(self.C.caustic_profile)
 		ens_nfwsurf = np.array(self.C.caustic_fit)
+		ens_edgesurf = np.array(self.C.caustic_edge)
 
 		# Other Arrays
 		x_range = self.C.x_range
 
 		# Append Data
-		names = ['ens_caumass','ens_hvd','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','x_range']
+		names = ['ens_caumass','ens_hvd','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','ens_edgesurf','x_range']
 		D.add(ez.create(names,locals()))
 
 		# Turn Individual Data into Arrays
