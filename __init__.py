@@ -9,7 +9,7 @@ Stack individual clusters' phase spaces into an ensemble and run caustic techniq
 Nick Kern, University of Michigan
 nkern@umich.edu
 Version 0.1
-Updated: May, 2014
+Updated: June, 2014
 """
 
 # Load Modules
@@ -42,26 +42,34 @@ class Data():
 			return True
 		else:
 			return False
-	def append(self,DATA):
+	def append(self,DATA,keys=None):
 		"""
 		Takes DATA as a DICTIONARY:
 		if the key already exists within self.__dict__ it APPENDS IT,
 		if the key does not exist within self.__dict__ it ADDS IT.
 		"""
+		if keys == None:
+			names = DATA.keys()
+		else:
+			names = keys
 		# Iterate through variables defined in DATA
-		for name in DATA:
+		for name in names:
 			if self.check_varib(name) == True:
 				self.__dict__[name].append(DATA[name])
 			else:
 				self.__dict__[name] = [DATA[name]]
-	def extend(self,DATA):
+	def extend(self,DATA,keys=None):
 		"""
 		Takes DATA as a DICTIONARY:
 		if the key already exists within self.__dict__ it EXTENDS IT,
 		if the key does not exist within self.__dict__ it ADDS IT.
 		"""
+                if keys == None:
+                        names = DATA.keys()
+                else:
+                        names = keys
 		# Iterate through variables defined in DATA
-		for name in DATA:
+		for name in names:
 			if self.check_varib(name) == True:
 				try:
 					self.__dict__[name].extend(list(DATA[name]))
@@ -72,14 +80,18 @@ class Data():
 					self.__dict__[name] = list(DATA[name])
 				except:
 					self.__dict__[name] = [DATA[name]]
-	def add(self,DATA):
+	def add(self,DATA,keys=None):
 		"""
 		Takes DATA as a DICTIONARY:
 		if the key already exists within self.__dict__ it REPLACES IT,
 		if the key does not exist within self.__dict__ it ADDS IT.
 		"""
+                if keys == None:
+                        names = DATA.keys()
+                else:
+                        names = keys
 		# Iterate through variables defined in DATA
-		for name in DATA:
+		for name in names:
 			try:
 				len(DATA[name])
 				self.__dict__[name] = np.array(DATA[name])
@@ -102,6 +114,24 @@ class Data():
 					self.__dict__[i] = np.array(self.__dict__[i])
 			except:
 				pass
+	def upper(self,names=None):
+		"""
+		Turns all keys of Data into upper case, or those that are fed via names
+		"""
+		if names == None:
+			names = self.__dict__.keys()
+		for name in names:
+			try: self.__dict__[name.upper()] = self.__dict__.pop(name)
+			except: pass
+	def lower(self,names=None):
+		"""
+		Turns all keys of Data into lower case, or those that are fed via naems
+		"""
+		if names == None:
+			names = self.__dict__.keys()
+		for name in names:
+			try: self.__dict__[name.lower()] = self.__dict__.pop(name)
+			except: pass
 
 class Stack(object):
 	"""
@@ -140,6 +170,7 @@ class Stack(object):
 			self.run_los - run caustic technique over individual cluster (aka line-of-sight)
 			self.avg_meth - method by which averaging of Bin Properties should be, 'mean' or 'median' or 'biweight' etc..
 			self.mirror - mirror phase space before solving for caustic?
+			Including others... see RunningTheCode.pdf for a list
 			* These parameters should be fed to initialization of Stack() class as a dictionary, for ex:
 				variables = {'run_los':False, ...... }
 				S = Stack(variables)
@@ -301,7 +332,7 @@ class Stack(object):
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
 		# Calculate Ensemble Velocity Dispersion for galaxies within R200
-		D.ens_hvd = astStats.biweightScale(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)],9.0)
+		ens_hvd = astStats.biweightScale(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)],9.0)
 
 		# Run Caustic Technique!
 		try: self.U.print_separation('# Running Caustic on Ensemble '+str(self.j),type=2)
@@ -318,7 +349,7 @@ class Stack(object):
 		x_range = self.C.x_range
 
 		# Append Data
-		names = ['ens_caumass','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','x_range']
+		names = ['ens_caumass','ens_hvd','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','x_range']
 		D.add(ez.create(names,locals()))
 
 		# Turn Individual Data into Arrays
@@ -592,11 +623,11 @@ class Universal(object):
 
 		# Calculate Bin R200 and Bin HVD, use median
 		BIN_M200,BIN_R200,BIN_HVD = [],[],[]
-		for i in range(self.line_num):
+		for i in range(len(M200)/self.line_num):
 			BIN_M200.append( avg_method( M200[i*self.line_num:(i+1)*self.line_num] ) )
 			BIN_R200.append( avg_method( R200[i*self.line_num:(i+1)*self.line_num] ) )
 			BIN_HVD.append( avg_method( HVD[i*self.line_num:(i+1)*self.line_num] ) )
-	
+
 		BIN_M200,BIN_R200,BIN_HVD = np.array(BIN_M200),np.array(BIN_R200),np.array(BIN_HVD)
 
 		return BIN_M200,BIN_R200,BIN_HVD
@@ -693,13 +724,14 @@ class Universal(object):
 		return r, v, new_pos
 
 
-	def print_varibs(self,varibs):
+	def print_varibs(self,names,dictionary):
 		print '## Variables Defined in the Run'
 		print '-'*50
-		names = ['run_time','run_num','gal_num','line_num','cell_num','ens_num','halo_num','method_num','avg_meth','self_stack','mass_mix','write_data','scale_data','run_los','mirror','new_halo_cent','cent_offset','true_mems','init_clean','bootstrap','mass_scat','center_scat','bootstrap_num','bootstrap_rep','data_loc','write_loc']
 		for i in names:
 			try:
-				print i+'\r\t\t\t'+str(varibs[i])
+				if i=='':
+					print ''
+				print i+'\r\t\t\t= '+str(dictionary[i])
 			except:
 				pass
 		print '-'*50
