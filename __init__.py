@@ -253,7 +253,7 @@ class Stack(object):
 
 			# If Scale data before stack is desired
 			if self.scale_data == True:
-				ens_r /= BinR200
+				ens_r /= R200[self.l]
 
 			# Stack Ensemble Data by extending to Data() container
 			names = ['ens_r','ens_v','ens_gmags','ens_rmags','ens_imags','ens_gal_id','ens_clus_id']
