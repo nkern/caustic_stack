@@ -121,6 +121,8 @@ class Data():
 					self.__dict__[i] = np.array(self.__dict__[i]).ravel()
 				else:
 					self.__dict__[i] = np.array(self.__dict__[i])
+					if self.__dict__[i].shape[-1] == 1:
+						self.__dict__[i] = self.__dict__[i].reshape(self.__dict__.shape[0:-1])
 			except:
 				pass
 	def upper(self,names=None):
