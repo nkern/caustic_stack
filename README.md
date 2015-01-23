@@ -12,7 +12,7 @@ the most basic level, this code needs only radius and velocity data of galaxies 
 ### Installing: ###
 Download caustic_stack/ from github:
 
-	$ git clone git@github.com:nkern/caustic_stack.git
+	$ git clone https://github.com/nkern/caustic_stack
 
 Add location of directory to path. In bash, append this to your ~/.bashrc or ~/.bash_profile:
 
