@@ -230,9 +230,9 @@ class Stack(object):
 		if feed_mags == False:
 			G_Mags,R_Mags,I_Mags = [],[],[]
 			for i in range(stack_num):
-				G_mags.append([None]*len(Rdata[i]))
-				R_rmags.append([None]*len(Rdata[i]))
-				I_mags.append([None]*len(Rdata[i]))
+				G_Mags.append([None]*len(Rdata[i]))
+				R_Mags.append([None]*len(Rdata[i]))
+				I_Mags.append([None]*len(Rdata[i]))
 
 		# Create galaxy identification arrays
 		ENS_gal_id,ENS_clus_id,IND_gal_id = [],[],[]
