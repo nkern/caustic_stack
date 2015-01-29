@@ -17,7 +17,7 @@ import numpy as np
 import astropy.io.fits as fits
 from numpy.linalg import norm
 import matplotlib.pyplot as mp
-import astStats
+import astropy.stats as astats
 import sys, os
 import time
 import cPickle as pkl
@@ -206,8 +206,12 @@ class Stack(object):
 		-- Uppercase arrays contain data for multiple clusters,
 			lowercase arrays contain data for 1 cluster
 		"""
+
 		# Define a container for holding stacked data, D
 		D = Data()
+
+		# Assign some parameters to Class scope
+		S.__dict__.update(ez.create(['stack_raw','feed_mags','gal_reduce','ens_shiftgap'],locals()))
 
 		# Unpack HaloData
 		if HaloData == None:
@@ -233,6 +237,7 @@ class Stack(object):
 				G_Mags.append([None]*len(Rdata[i]))
 				R_Mags.append([None]*len(Rdata[i]))
 				I_Mags.append([None]*len(Rdata[i]))
+			G_Mags,R_Mags,I_Mags = np.array(G_Mags),np.array(R_Mags),np.array(I_Mags)
 
 		# Create galaxy identification arrays
 		ENS_gal_id,ENS_clus_id,IND_gal_id = [],[],[]
@@ -403,6 +408,10 @@ class Universal(object):
 		halodata : 2 dimensional array, with info on halo properties
 		- m200,r200,hvd
 		"""
+		if stack_raw == True:
+			pass
+			# stack_raw not yet incorporated
+
 		# Unpack halodata array into local namespace
 		m200,r200,hvd = halodata
 
@@ -690,7 +699,7 @@ class Universal(object):
 		return np.array([ens_gpx3d,ens_gpy3d,ens_gpz3d]),np.array([ens_gvx3d,ens_gvy3d,ens_gvz3d]),np.array([los_gpx3d,los_gpy3d,los_gpz3d]),np.array([los_gvx3d,los_gvy3d,los_gvz3d])
 
 
-	def line_of_sight(self,gal_p,gal_v,halo_p,halo_v,project=True,pro_pos=None):
+	def line_of_sight(self,gal_p,gal_v,halo_p,halo_v):
 		'''Line of Sight Calculations to mock projected data, if given 3D data'''
 		# Pick Position
 		new_pos = self.rand_pos(30)
@@ -708,6 +717,7 @@ class Universal(object):
 		gal_vlos = np.zeros(gal_dist.size)
 		gal_pos_unit = np.zeros((3,gal_dist.size))	#vector from new_p to gal	
 		n = gal_dist.size
+
 		# Line of sight
 		code = """
 		int u,w;
@@ -735,6 +745,29 @@ class Universal(object):
 #		gal_rmag_new = gal_abs_rmag# + 5*np.log10(gal_dist*1e6/10.0)
 
 		return r, v, new_pos
+
+
+	def app2abs(self,m_app,color,z,photo_band,color_band):
+		'''
+		takes apparent magnitude of a galaxy in some photometric band (SDSS g or r or i)
+		and converts it to an absolute magnitude via distance modulus and k correction
+		M_abs = m_app - Dist_Mod - K_corr
+		takes:
+			m_app		: float, apparent magnitude of galaxy
+			color		: float, color of galaxy between two SDSS bands
+			z		: float, total redshift of galaxy
+			photo_band	: str, SDSS band for magnitude. Ex: 'g' or 'r' or 'i'
+			color_band	: str, color between two SDSS bands. Ex: 'g - r' or 'g - i' or 'r - i', etc..
+		'''
+		dm = self.distance_mod(z)
+		K_corr = calc_kcor(photo_band,z,color_band,color)
+		return m_app - dm - K_corr
+
+
+	def distance_mod(self,z):
+		ang_d,lum_d = self.C.zdistance(z,self.H0)
+		dm = 5.0 * np.log10(lum_d*1e6 / 10.0 )
+		return dm
 
 
 	def print_varibs(self,names,dictionary):
