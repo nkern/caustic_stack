@@ -30,6 +30,7 @@ from scipy.weave import converters
 import cosmolopy.distance as cd
 import DictEZ as ez
 from causticpy import Caustic,CausticSurface,MassCalc
+from calc_kcor import calc_kcor
 
 
 class Data():
