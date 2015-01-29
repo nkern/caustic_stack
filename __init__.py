@@ -17,7 +17,7 @@ import numpy as np
 import astropy.io.fits as fits
 from numpy.linalg import norm
 import matplotlib.pyplot as mp
-import astropy.stats as astats
+import astrostats as astats
 import sys, os
 import time
 import cPickle as pkl
