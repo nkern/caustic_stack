@@ -212,7 +212,6 @@ class Stack(object):
 		D = Data()
 
 		# Assign some parameters to Class scope
-		print locals()
 		self.__dict__.update(ez.create(['stack_raw','feed_mags','gal_reduce','ens_shiftgap'],locals()))
 
 		# Unpack HaloData
@@ -233,7 +232,7 @@ class Stack(object):
 			D.add({'BinM200':BinM200,'BinR200':BinR200,'BinHVD':BinHVD})	
 
 		# Create Dummy Variables for Magnitudes if necessary
-		if feed_mags == False:
+		if self.feed_mags == False:
 			G_Mags,R_Mags,I_Mags = [],[],[]
 			for i in range(stack_num):
 				G_Mags.append([None]*len(Rdata[i]))
@@ -254,11 +253,11 @@ class Stack(object):
 		for self.l in range(stack_num):
 
 			# Limit Phase Space
-			if stack_raw == False:
+			if self.stack_raw == False:
 				r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[self.l],R_Mags[self.l],I_Mags[self.l],R200[self.l],HVD[self.l])
 
 			# Build Ensemble and LOS Phase Spaces
-			if stack_raw == False:
+			if self.stack_raw == False:
 				ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,HaloData.T[self.l].T)
 
 			# If Scale data before stack is desired
@@ -280,7 +279,7 @@ class Stack(object):
 				ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = ind_data
 	
 				# Reduce phase space
-				if stack_raw == False and gal_reduce == True:
+				if self.stack_raw == False and self.gal_reduce == True:
 					within = np.where(ind_r <= R200[self.l])[0]
 					end = within[:self.gal_num + 1][-1]
 					ind_data = ind_data.T[:end].T
@@ -334,7 +333,7 @@ class Stack(object):
 		D.ens_data = np.vstack([D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags])
 
 		# Shiftgapper for Interloper Treatment
-		if stack_raw == False and ens_shiftgap == True:
+		if self.stack_raw == False and self.ens_shiftgap == True:
 			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
@@ -344,7 +343,7 @@ class Stack(object):
 		D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
 		# Reduce System Down to gal_num richness within BinR200
-		if stack_raw and gal_reduce == True:
+		if self.stack_raw and self.gal_reduce == True:
 			within = np.where(D.ens_r <= BinR200)[0]
 			end = within[:self.gal_num*self.line_num + 1][-1]
 			D.ens_data = D.ens_data.T[:end].T
@@ -410,7 +409,7 @@ class Universal(object):
 		halodata : 2 dimensional array, with info on halo properties
 		- m200,r200,hvd
 		"""
-		if stack_raw == True:
+		if self.stack_raw == True:
 			pass
 			# stack_raw not yet incorporated
 
