@@ -409,10 +409,6 @@ class Universal(object):
 		halodata : 2 dimensional array, with info on halo properties
 		- m200,r200,hvd
 		"""
-		if self.stack_raw == True:
-			pass
-			# stack_raw not yet incorporated
-
 		# Unpack halodata array into local namespace
 		m200,r200,hvd = halodata
 
