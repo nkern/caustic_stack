@@ -245,7 +245,7 @@ class Stack(object):
 		gal_count = 0
 		for i in range(stack_num):
 			ENS_gal_id.append(np.arange(gal_count,gal_count+len(Rdata[i])))
-			ENS_clus_id.append(np.array([HaloID[i]]*len(Rdata[i])))
+			ENS_clus_id.append(np.array([HaloID[i]]*len(Rdata[i]),int))
 			IND_gal_id.append(np.arange(len(Rdata[i])))
 		ENS_gal_id,ENS_clus_id,ENS_gal_id = np.array(ENS_gal_id),np.array(ENS_clus_id),np.array(IND_gal_id)
 
