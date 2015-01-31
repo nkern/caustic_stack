@@ -296,7 +296,7 @@ class Stack(object):
 				else:
 					# Calculate hvd with astStats biweightScale (see Beers 1990)
 					try:
-						ind_hvd = astStats.biweightScale(np.copy(ind_v)[within],9.0)
+						ind_hvd = astats.biweight_midvariance(np.copy(ind_v)[within])
 					# Sometimes divide by zero error in biweight function for low gal_num
 					except ZeroDivisionError:
 						print 'ZeroDivisionError in biweightfunction'
@@ -351,7 +351,7 @@ class Stack(object):
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
 		# Calculate Ensemble Velocity Dispersion for galaxies within R200
-		ens_hvd = astStats.biweightScale(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)],9.0)
+		ens_hvd = astats.biweight_midvariance(np.copy(D.ens_v)[np.where(D.ens_r<=BinR200)])
 
 		# Run Caustic Technique!
 		try: self.U.print_separation('# Running Caustic on Ensemble '+str(self.j),type=2)
