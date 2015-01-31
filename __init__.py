@@ -212,6 +212,7 @@ class Stack(object):
 		D = Data()
 
 		# Assign some parameters to Class scope
+		print locals()
 		self.__dict__.update(ez.create(['stack_raw','feed_mags','gal_reduce','ens_shiftgap'],locals()))
 
 		# Unpack HaloData
