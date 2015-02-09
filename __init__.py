@@ -742,7 +742,7 @@ class Universal(object):
 #		particle_vdisp3d[i] = HVD*np.sqrt(3)
 #		gal_rmag_new = gal_abs_rmag# + 5*np.log10(gal_dist*1e6/10.0)
 
-		return r, v, new_pos
+		return r, v, np.array(new_pos)
 
 
 	def app2abs(self,m_app,color,z,photo_band,color_band):
