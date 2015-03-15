@@ -172,7 +172,7 @@ class Stack(object):
 				ens_shiftgap=True,gal_reduce=True,stack_raw=False,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
-		-- Takes a previously array of individual phase spaces and stacks them, then runs 
+		-- Takes an array of individual phase spaces and stacks them, then runs 
 		   a caustic technique over the ensemble and/or individual phase spaces.
 		-- Returns a dictionary
 
@@ -619,12 +619,11 @@ class Universal(object):
 		r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags = r[sample],v[sample],en_gal_id[sample],en_clus_id[sample],ln_gal_id[sample],gmags[sample],rmags[sample],imags[sample]
 		samp_size = len(sample)
 
-
 		# Eliminate galaxies w/ mag = 99.
 		cut = np.where((gmags!=99)&(rmags!=99)&(imags!=99))[0]
 		r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags = r[cut],v[cut],en_gal_id[cut],en_clus_id[cut],ln_gal_id[cut],gmags[cut],rmags[cut],imags[cut]
 		samp_size = len(cut)
-	
+
 		return r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,samp_size
 
 
