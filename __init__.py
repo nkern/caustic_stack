@@ -228,7 +228,7 @@ class Stack(object):
 			HVD = []
 			for i in range(stack_num):
 				R200.append(np.exp(-1.86)*len(np.where((R_Mags[i] < -19.55) & (Rdata[i] < 1.0) & (np.abs(Vdata[i]) < 3500))[0])**0.51)
-				HVD.append(astats.biweight_location(vdata[np.where((Rdata < 1.0)&(np.abs(Vdata)<4000))]))
+				HVD.append(astats.biweight_location(Vdata[np.where((Rdata < 1.0)&(np.abs(Vdata)<4000))]))
 			R200 = np.array(R200)
 			HVD = np.array(HVD)
 
