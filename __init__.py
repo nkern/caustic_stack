@@ -169,7 +169,7 @@ class Stack(object):
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
-				ens_shiftgap=True,gal_reduce=True,stack_raw=False,
+				ens_shiftgap=True,gal_reduce=True,stack_raw=False,est_v_center=False,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
 		-- Takes an array of individual phase spaces and stacks them, then runs 
@@ -198,6 +198,7 @@ class Stack(object):
 		'ens_shiftgap' - do a shiftgapper over final ensemble phase space?
 		'gal_reduce' - before caustic run, reduce ensemble phase space to Ngal gals within R200?
 		'stack_raw' - don't worry about limiting or building the phase space, just stack the Rdata and Vdata together as is
+		'est_v_center' - take median of Vdata for new velocity center
 
 		'feed_gal_mags' - feed magnitudes for individual galaxies, must feed all three mags if True
 
@@ -214,11 +215,29 @@ class Stack(object):
 		# Assign some parameters to Class scope
 		self.__dict__.update(ez.create(['stack_raw','feed_mags','gal_reduce','ens_shiftgap'],locals()))
 
+		# New Velocity Center
+		if est_v_center == True:
+			v_offset = astats.biweight_location(vdata[np.where(rdata < 1.0)])
+			vdata -= v_offset
+
 		# Unpack HaloData
 		if HaloData == None:
-			fed_halo_data = False
+			self.fed_halo_data = False
+			# Estimate R200
+			R200 = []
+			HVD = []
+			for i in range(stack_num):
+				R200.append(np.exp(-1.86)*len(np.where((R_Mags[i] < -19.55) & (Rdata[i] < 1.0) & (np.abs(Vdata[i]) < 3500))[0])**0.51)
+				HVD.append(astats.biweight_location(vdata[np.where((rdata < 1.0)&(np.abs(vdata)<4000))])
+			R200 = np.array(R200)
+			HVD = np.array(HVD)
+
+			if self.avg_meth == 'mean': BinR200 = np.mean(R200); BinHVD = np.mean(HVD)
+			elif self.avg_meth == 'median': BinR200 = np.median(R200); BinHVD = np.median(HVD)
+			D.add({'BinR200':BinR200,'BinHVD':BinHVD})			
+
 		else:
-			fed_halo_data = True
+			self.fed_halo_data = True
 			M200,R200,HVD = HaloData
 			if self.avg_meth == 'mean':
 				BinM200 = np.mean(M200)
@@ -254,11 +273,11 @@ class Stack(object):
 
 			# Limit Phase Space
 			if self.stack_raw == False:
-				r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[self.l],R_Mags[self.l],I_Mags[self.l],R200[self.l],HVD[self.l])
+				r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,samp_size = self.U.limit_gals(Rdata[self.l],Vdata[self.l],ENS_gal_id[self.l],ENS_clus_id[self.l],IND_gal_id[self.l],G_Mags[self.l],R_Mags[self.l],I_Mags[self.l],R200[self.l])
 
 			# Build Ensemble and LOS Phase Spaces
 			if self.stack_raw == False:
-				ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,HaloData.T[self.l].T)
+				ens_r,ens_v,ens_gal_id,ens_clus_id,ens_gmags,ens_rmags,ens_imags,ind_r,ind_v,ind_gal_id,ind_gmags,ind_rmags,ind_imags = self.U.build(r,v,ens_gal_id,ens_clus_id,ind_gal_id,gmags,rmags,imags,R200[self.l])
 
 			# If Scale data before stack is desired
 			if self.scale_data == True:
@@ -393,7 +412,7 @@ class Universal(object):
 		self.C = Caustic()
 
 
-	def build(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,halodata):
+	def build(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,r200):
 		"""
 		This function builds the ensemble and individual cluster phase spaces, depending on fed parameters
 		method 0 : top Ngal brightest
@@ -408,11 +427,8 @@ class Universal(object):
 		imags : SDSS i magnitude
 		gmags : SDSS g magnitude
 		halodata : 2 dimensional array, with info on halo properties
-		- m200,r200,hvd
+		- r200
 		"""
-		# Unpack halodata array into local namespace
-		m200,r200,hvd = halodata
-
 		# Sort galaxies by r Magnitude
 		bright = np.argsort(rmags)
 		r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags = r[bright],v[bright],en_gal_id[bright],en_clus_id[bright],ln_gal_id[bright],gmags[bright],rmags[bright],imags[bright]
@@ -601,7 +617,7 @@ class Universal(object):
 	        return distance*unit
 
 
-	def limit_gals(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,r200,hvd):
+	def limit_gals(self,r,v,en_gal_id,en_clus_id,ln_gal_id,gmags,rmags,imags,r200):
 		''' Sort data by magnitude, and elimite values outside phase space limits '''
 		# Sort by ascending r magnitude (bright to dim)
 		sorts = np.argsort(rmags)
