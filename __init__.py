@@ -234,7 +234,7 @@ class Stack(object):
 
 			if self.avg_meth == 'mean': BinR200 = np.mean(R200); BinHVD = np.mean(HVD)
 			elif self.avg_meth == 'median': BinR200 = np.median(R200); BinHVD = np.median(HVD)
-			D.add({'BinR200':BinR200,'BinHVD':BinHVD})			
+			D.add({'BinR200':BinR200,'BinHVD':BinHVD,'R200':R200,'HVD':HVD})			
 
 		else:
 			self.fed_halo_data = True
