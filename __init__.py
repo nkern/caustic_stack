@@ -357,7 +357,8 @@ class Stack(object):
 			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
-		if self.stack_raw == False and self.edge_int_remove=True
+		if self.stack_raw == False and self.edge_int_remove == True:
+			pass
 
 		# Sort by R_Mag
 		bright = np.argsort(D.ens_rmags)
