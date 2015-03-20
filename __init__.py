@@ -155,7 +155,7 @@ class Stack(object):
 		self.C = Caustic()
 		self.U = Universal(varib)
 
-	def run_caustic(self,rvalues,vvalues,R200,HVD,clus_z=0,shiftgap=False,mirror=True,ensemble=True):
+	def run_caustic(self,rvalues,vvalues,R200,HVD,clus_z=0,edge_int_remove=False,shiftgap=False,mirror=True,ensemble=True):
 		"""
 		Calls causticpy's run_caustic function
 		"""
@@ -164,12 +164,12 @@ class Stack(object):
 		dummy = np.zeros(length).reshape(length,1)
 
 		# Run Caustic
-		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,gapper=shiftgap,mirror=mirror,edge_perc=self.edge_perc,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
+		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,gapper=shiftgap,edge_int_remove=edge_int_remove,mirror=mirror,edge_perc=self.edge_perc,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
 		#self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,mirror=mirror,edge_perc=self.edge_perc,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
-				ens_shiftgap=True,gal_reduce=True,stack_raw=False,est_v_center=False,
+				ens_shiftgap=True,edge_int_remove=True,gal_reduce=True,stack_raw=False,est_v_center=False,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
 		-- Takes a previously array of individual phase spaces and stacks them, then runs 
@@ -356,6 +356,8 @@ class Stack(object):
 			self.D = D
 			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
+
+		if self.stack_raw == False and self.edge_int_remove=True
 
 		# Sort by R_Mag
 		bright = np.argsort(D.ens_rmags)
