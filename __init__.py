@@ -354,10 +354,8 @@ class Stack(object):
 		# Shiftgapper for Interloper Treatment
 		if self.stack_raw == False and self.ens_shiftgap == True:
 			self.D = D
-			print 'before shiftgapper size:',len(D.ens_data[0])
 			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
-                        print 'after shiftgapper size:',len(D.ens_data[0])
-			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
+		D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
 		if self.stack_raw == False and self.edge_int_remove == True:
 			pass
