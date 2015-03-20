@@ -164,12 +164,12 @@ class Stack(object):
 		dummy = np.zeros(length).reshape(length,1)
 
 		# Run Caustic
-		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,gapper=shiftgap,edge_int_remove=edge_int_remove,mirror=mirror,edge_perc=self.edge_perc,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
+		self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,edge_int_remove=edge_int_remove,mirror=mirror,edge_perc=self.edge_perc,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
 		#self.C.run_caustic(dummy,gal_r=rvalues,gal_v=vvalues,r200=R200,clus_z=clus_z,clus_vdisp=HVD,gapper=shiftgap,mirror=mirror,edge_perc=self.edge_perc,q=self.q,rlimit=self.r_limit*R200,vlimit=self.v_limit,H0=self.H0)
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
-				ens_shiftgap=True,edge_int_remove=True,gal_reduce=True,stack_raw=False,est_v_center=False,
+				ens_shiftgap=True,edge_int_remove=False,gal_reduce=True,stack_raw=False,est_v_center=False,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
 		-- Takes an array of individual phase spaces and stacks them, then runs 
@@ -354,7 +354,9 @@ class Stack(object):
 		# Shiftgapper for Interloper Treatment
 		if self.stack_raw == False and self.ens_shiftgap == True:
 			self.D = D
+			print 'before shiftgapper size:',len(D.ens_data[0].size)
 			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
+                        print 'after shiftgapper size:',len(D.ens_data[0].size)
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
 		if self.stack_raw == False and self.edge_int_remove == True:
@@ -378,7 +380,7 @@ class Stack(object):
 		# Run Caustic Technique!
 		try: self.U.print_separation('# Running Caustic on Ensemble '+str(self.j),type=2)
 		except: pass
-		self.run_caustic(D.ens_r,D.ens_v,BinR200,BinHVD,mirror=self.mirror)
+		self.run_caustic(D.ens_r,D.ens_v,BinR200,BinHVD,mirror=self.mirror,shiftgap=self.ens_shiftgap,edge_int_remove=self.edge_int_remove)
 		ens_caumass = np.array([self.C.M200_fbeta])
 		ens_caumass_est = np.array([self.C.Mass2.M200_est])
 		ens_edgemass = np.array([self.C.M200_edge])
