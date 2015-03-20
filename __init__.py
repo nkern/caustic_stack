@@ -470,7 +470,7 @@ class Universal(object):
 			excess = gal_num / 5.0
 		end = within[:gal_num + excess + 1][-1]		# instead of indexing I am slicing b/c of chance of not enough gals existing...	
 		# Choose Ngals within r200
-		if self.init_clean == True:
+		if self.init_shiftgap == True:
 			excess *= 2.0				# make excess a bit larger than previously defined
 			end = within[:gal_num + excess + 1][-1]
 			r2,v2,en_gal_id,en_clus_id,gmags2,rmags2,imags2 = self.C.shiftgapper(np.vstack([r[:end],v[:end],en_gal_id[:end],en_clus_id[:end],gmags[:end],rmags[:end],imags[:end]]).T).T # Shiftgapper inputs and outputs data as transpose...
@@ -537,7 +537,7 @@ class Universal(object):
 				samp_num += 2
 
 		### Build Ensemble ###
-		if self.init_clean == True:
+		if self.init_shiftgap == True:
 
 			r2,v2,en_gal_id,en_clus_id,gmags2,rmags2,imags2 = self.C.shiftgapper(np.vstack([r[rando],v[rando],en_gal_id[rando],en_clus_id[rando],gmags[rando],rmags[rand],imags[rando]]).T).T
 			within = np.where(r2<r_crit200)[0]
