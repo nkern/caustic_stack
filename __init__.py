@@ -169,7 +169,7 @@ class Stack(object):
 
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
-				ens_shiftgap=True,edge_int_remove=False,gal_reduce=True,stack_raw=False,est_v_center=False,
+				ens_shiftgap=True,edge_int_remove=True,gal_reduce=True,stack_raw=False,est_v_center=False,
 				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
 		"""
 		-- Takes a previously array of individual phase spaces and stacks them, then runs 
@@ -370,6 +370,8 @@ class Stack(object):
 		# Reduce System Down to gal_num richness within BinR200
 		if self.stack_raw and self.gal_reduce == True:
 			within = np.where(D.ens_r <= BinR200)[0]
+			print 'len(within)',len(within)
+			print 'gal_num,line_num',self.gal_num,self.line_num
 			end = within[:self.gal_num*self.line_num + 1][-1]
 			D.ens_data = D.ens_data.T[:end].T
 			D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
