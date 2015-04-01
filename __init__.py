@@ -9,7 +9,7 @@ Stack individual clusters' phase spaces into an ensemble and run caustic techniq
 Nick Kern, University of Michigan
 nkern@umich.edu
 Version 0.1
-Updated: June, 2014
+Updated: May, 2015
 """
 
 # Load Modules
@@ -170,7 +170,7 @@ class Stack(object):
 
 	def caustic_stack(self,Rdata,Vdata,HaloID,HaloData,stack_num,
 				ens_shiftgap=True,edge_int_remove=True,gal_reduce=True,stack_raw=False,est_v_center=False,
-				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None):
+				feed_mags=True,G_Mags=None,R_Mags=None,I_Mags=None,clus_z=0):
 		"""
 		-- Takes an array of individual phase spaces and stacks them, then runs 
 		   a caustic technique over the ensemble and/or individual phase spaces.
@@ -356,9 +356,6 @@ class Stack(object):
 			self.D = D
 			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
 		D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
-
-		if self.stack_raw == False and self.edge_int_remove == True:
-			pass
 
 		# Sort by R_Mag
 		bright = np.argsort(D.ens_rmags)
