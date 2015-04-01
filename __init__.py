@@ -386,11 +386,16 @@ class Stack(object):
 		ens_nfwsurf = np.array(self.C.caustic_fit)
 		ens_edgesurf = np.array(self.C.caustic_edge)
 
+		ens_caumass500_est = np.array(self.C.Mass2.M500_est)
+		ens_edgemass500_est = np.array(self.C.MassE.M500_est)
+		ens_r200_est = np.array(self.C.r200_est_fbeta)
+		ens_r500_est = np.array(self.C.r500_est_fbeta)
+
 		# Other Arrays
 		x_range = self.C.x_range
 
 		# Append Data
-		names = ['ens_caumass','ens_hvd','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','ens_edgesurf','x_range']
+		names = ['ens_caumass','ens_hvd','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','ens_edgesurf','x_range','ens_caumass500_est','ens_edgemass500_est','ens_r200_est','ens_r500_est']
 		D.add(ez.create(names,locals()))
 
 		# Turn Individual Data into Arrays
