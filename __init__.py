@@ -378,7 +378,7 @@ class Stack(object):
 		try: self.U.print_separation('# Running Caustic on Ensemble '+str(self.j),type=2)
 		except: pass
 		try:
-			self.run_caustic(D.ens_r,D.ens_v,BinR200,BinHVD,mirror=self.mirror,shiftgap=self.ens_shiftgap,edge_int_remove=self.edge_int_remove)
+			self.run_caustic(D.ens_r,D.ens_v,BinR200,ens_hvd,mirror=self.mirror,shiftgap=self.ens_shiftgap,edge_int_remove=self.edge_int_remove)
 			ens_caumass = np.array([self.C.M200_fbeta])
 			ens_caumass_est = np.array([self.C.Mass2.M200_est])
 			ens_edgemass = np.array([self.C.M200_edge])
