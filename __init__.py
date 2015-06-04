@@ -192,7 +192,7 @@ class Stack(object):
 		"vdata" - should be a 2 dimensional array with individual phase spaces as rows
 				ex. rdata[0] => 0th phase space data
 		'HaloID' : 1 dimensional array containing Halo Identification Numbers, len(HaloID) == len(rdata)
-		'HaloData' : 2 dimensional array containing M200, R200, HVD of Halos, with unique halos as columns
+		'HaloData' : 2 dimensional array containing M200, R200, HVD, Z of Halos, with unique halos as columns
 		'stack_num' : number of individual clusters to stack into the one ensemble
 
 		'ens_shiftgap' - do a shiftgapper over final ensemble phase space?
@@ -226,29 +226,32 @@ class Stack(object):
 			# Estimate R200
 			R200 = []
 			HVD = []
+			Z = []
 			for i in range(stack_num):
 				R200.append(np.exp(-1.86)*len(np.where((R_Mags[i] < -19.55) & (Rdata[i] < 1.0) & (np.abs(Vdata[i]) < 3500))[0])**0.51)
 				HVD.append(astats.biweight_midvariance(Vdata[i][np.where((Rdata[i] < 1.0)&(np.abs(Vdata[i])<4000))]))
 			R200 = np.array(R200)
 			HVD = np.array(HVD)
-
-			if self.avg_meth == 'mean': BinR200 = np.mean(R200); BinHVD = np.mean(HVD)
-			elif self.avg_meth == 'median': BinR200 = np.median(R200); BinHVD = np.median(HVD)
-			D.add({'BinR200':BinR200,'BinHVD':BinHVD,'R200':R200,'HVD':HVD})			
+			Z = np.array([0.05]*len(R200))
+			if self.avg_meth == 'mean': BinR200 = np.mean(R200); BinHVD = np.mean(HVD); BinZ = np.mean(Z)
+			elif self.avg_meth == 'median': BinR200 = np.median(R200); BinHVD = np.median(HVD); BinZ = np.median(Z)
+			D.add({'BinR200':BinR200,'BinHVD':BinHVD,'BinZ':BinZ,'R200':R200,'HVD':HVD,'Z':Z})
 
 		else:
 			self.fed_halo_data = True
-			M200,R200,HVD = HaloData
+			M200,R200,HVD,Z = HaloData
 			if self.avg_meth == 'mean':
 				BinM200 = np.mean(M200)
 				BinR200 = np.mean(R200)
 				BinHVD = np.mean(HVD)
+				BinZ = np.mean(Z)
 			elif self.avg_meth == 'median':
 				BinM200 = np.median(M200)
 				BinR200 = np.median(R200)
 				BinHVD = np.median(HVD)
+				BinZ = np.median(Z)
 			# Append to Data
-			D.add({'BinM200':BinM200,'BinR200':BinR200,'BinHVD':BinHVD})	
+			D.add({'BinM200':BinM200,'BinR200':BinR200,'BinHVD':BinHVD,'BinZ':BinZ})	
 
 		# Create Dummy Variables for Magnitudes if necessary
 		if self.feed_mags == False:
@@ -324,7 +327,7 @@ class Stack(object):
 
 				# If run_los == True, run Caustic Technique on individual cluster
 				self.U.print_separation('# Running Caustic for LOS '+str(self.l),type=2)
-				self.run_caustic(ind_r,ind_v,R200[self.l],ind_hvd,mirror=self.mirror,edge_int_remove=edge_int_remove)
+				self.run_caustic(ind_r,ind_v,R200[self.l],ind_hvd,clus_z=Z[self.l],mirror=self.mirror)
 				ind_caumass = np.array([self.C.M200_fbeta])
 				ind_caumass_est = np.array([self.C.Mass2.M200_est])
 				ind_edgemass = np.array([self.C.M200_edge])
@@ -378,7 +381,7 @@ class Stack(object):
 		try: self.U.print_separation('# Running Caustic on Ensemble '+str(self.j),type=2)
 		except: pass
 		try:
-			self.run_caustic(D.ens_r,D.ens_v,BinR200,ens_hvd,mirror=self.mirror,edge_int_remove=self.edge_int_remove)
+			self.run_caustic(D.ens_r,D.ens_v,BinR200,ens_hvd,clus_z=BinZ,mirror=self.mirror,shiftgap=self.ens_shiftgap,edge_int_remove=self.edge_int_remove)
 			ens_caumass = np.array([self.C.M200_fbeta])
 			ens_caumass_est = np.array([self.C.Mass2.M200_est])
 			ens_edgemass = np.array([self.C.M200_edge])
@@ -390,6 +393,7 @@ class Stack(object):
 			ens_edgemass500_est = np.array(self.C.MassE.M500_est)
 			ens_r200_est = np.array(self.C.r200_est_fbeta)
 			ens_r500_est = np.array(self.C.r500_est_fbeta)
+			ens_r200_est_edge = np.array(self.C.r200_est_edge)
 
 		except:
 			print ''
@@ -408,12 +412,13 @@ class Stack(object):
 			ens_edgemass500_est = np.array([0])
 			ens_r200_est = np.array([0])
 			ens_r500_est = np.array([0])
+			ens_r200_est_edge = np.array([0])
 
 		# Other Arrays
 		x_range = self.C.x_range
 
 		# Append Data
-		names = ['ens_caumass','ens_hvd','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','ens_edgesurf','x_range','ens_caumass500_est','ens_edgemass500_est','ens_r200_est','ens_r500_est']
+		names = ['ens_caumass','ens_hvd','ens_caumass_est','ens_edgemass','ens_edgemass_est','ens_causurf','ens_nfwsurf','ens_edgesurf','x_range','ens_caumass500_est','ens_edgemass500_est','ens_r200_est','ens_r500_est','ens_r200_est_edge']
 		D.add(ez.create(names,locals()))
 
 		# Turn Individual Data into Arrays
