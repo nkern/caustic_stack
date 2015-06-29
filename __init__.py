@@ -519,7 +519,13 @@ class Universal(object):
 			excess = gal_num / 5.0
 		end = within[:gal_num + excess + 1][-1]		# instead of indexing I am slicing b/c
 		# shiftgapper on line of sight
-		r2,v2,ln_gal_id,gmags2,rmags2,imags2 = self.C.shiftgapper(np.vstack([r[:end],v[:end],ln_gal_id[:end],gmags[:end],rmags[:end],imags[:end]]).T).T
+		try:
+			r2,v2,ln_gal_id,gmags2,rmags2,imags2 = self.C.shiftgapper(np.vstack([r[:end],v[:end],ln_gal_id[:end],gmags[:end],rmags[:end],imags[:end]]).T).T
+		except UnboundLocalError:	#When only a couple or no galaxies exist within RVIR
+			print '-'*40
+			print 'UnboundLocalError raised for shiftgapper on individual cluster....'
+			print '-'*40
+			r2,v2,ln_gal_id,gmags2,rmags2,imags2 = r[:end],v[:end],ln_gal_id[:end],gmags[:end],rmags[:end],imags[:end]
 
 		# Sort by rmags
 		sort = np.argsort(rmags2)
