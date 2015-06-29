@@ -357,7 +357,14 @@ class Stack(object):
 		# Shiftgapper for Interloper Treatment
 		if self.stack_raw == False and self.ens_shiftgap == True:
 			self.D = D
-			D.ens_data = self.C.shiftgapper(D.ens_data.T).T
+			try:
+				D.ens_data = self.C.shiftgapper(D.ens_data.T).T
+				D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
+			except UnboundLocalError:	# A couple or no galaxies within RVIR
+				print '-'*40
+				print 'UnboundLocalError raised on Ensemble Shiftgapper'
+				print '-'*40
+
 		D.ens_r,D.ens_v,D.ens_gal_id,D.ens_clus_id,D.ens_gmags,D.ens_rmags,D.ens_imags = D.ens_data
 
 		# Sort by R_Mag
